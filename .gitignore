@@ -1,0 +1,51 @@
+# Node.js dependencies (for both client and server)
+node_modules/
+npm-debug.log*
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+logs/**/*.log
+debug.log
+error.log
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Editor & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build output (React frontend)
+client/build/
+client/.parcel-cache/
+client/.next/
+client/.cache/
+
+# Coverage reports
+coverage/
+client/coverage/
+server/coverage/
+
+# Express-generated files
+server/dist/
+server/uploads/
+
+# Database files (if using SQLite)
+server/*.sqlite
+server/*.sqlite3
+server/db.json
+server/database.sqlite
+
+# Misc
+*.bak
+*.swp
