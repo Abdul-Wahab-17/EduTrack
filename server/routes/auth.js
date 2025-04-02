@@ -51,41 +51,19 @@ passport.deserializeUser(function(user,cb){
     });
 });
   
-router.get('/login', (req, res) => {
- ejs.renderFile('./views/login.ejs',  (err, body) => {
-     if (err) throw err;
-     res.render('layout', { title: 'LMS', body  });
-   });
- });
-
-router.post('/login', passport.authenticate('local', {
-    successRedirect: '/auth/login',
-    failureRedirect: '/auth/login'
-}));
 
 
+router.post('/login', passport.authenticate('local'), 
+    (req , res) =>{
+        res.send('hiiiiiiiiiii')
+    }
+);
 
-router.post('/logout' , function(req,res,next){
-    req.logout(function(err){
-        if (err){ return next(err);}
-        res.redirect('/');
-    });
+router.get('/check'  , (req , res ) => {
+    if (req.isAuthenticated()){  res.json( {authenticated: true , user:req.user}) }
+    else { res.json({ authenticated:false});}
 });
 
-router.get('/logout', (req, res) => {
-    ejs.renderFile('./views/logout.ejs',  (err, body) => {
-        if (err) throw err;
-        res.render('layout', { title: 'LMS', body  });
-      });
-    });
-
-
-router.get('/register' , (req , res ) =>{
-    ejs.renderFile('./views/register.ejs' , (err , body) => {
-        if (err) { throw err;}
-        res.render('layout' , {title : 'LMS' , body});
-    });
-} );
 
 router.post('/register' , (req , res , next)=>{
     const { username , password} = req.body;
