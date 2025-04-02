@@ -59,9 +59,19 @@ router.post('/login', passport.authenticate('local'),
     }
 );
 
+router.post('/logout' , ensureAuthenticated , (req , res) => {
+    console.log('got here')
+    req.logout((err)=> {
+        if (err) { console.log(err)}
+        res.send('byeeeeeeee')
+    });
+})
+
 router.get('/check'  , (req , res ) => {
-    if (req.isAuthenticated()){  res.json( {authenticated: true , user:req.user}) }
-    else { res.json({ authenticated:false});}
+    if (req.isAuthenticated()){   console.log('user is authenticated ' + req.user.username)
+        res.json( {authenticated: true , user:req.user}) }
+    else { console.log('user is not authenticated')
+        res.json({ authenticated:false});}
 });
 
 

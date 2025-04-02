@@ -5,6 +5,7 @@ import Navbar from './components/navbar';
 import Home from './pages/home';
 import Dashboard from './pages/dashboard';
 import Login from './pages/login';
+import Contact from './pages/contact';
 import Logout from './pages/logout';
 import Footer from './components/footer';
 
@@ -26,6 +27,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<Login setAuthenticated={setAuthenticated} />} />
                 <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} />} />
             </Routes>

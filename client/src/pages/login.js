@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-function Login() {
+function Login({setAuthenticated}) {
+
     const [formData, setFormData] = useState({ username: "", password: "" });
     const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -15,8 +18,8 @@ function Login() {
             const response = await axios.post("http://localhost:8080/auth/login", formData, {
                 withCredentials: true, // Send session cookies
             });
-            
-            console.log("Login successful:", response.data);
+            setAuthenticated(true);
+            navigate("/dashboard");
         } catch (err) {
             setError("Invalid credentials");
         }
