@@ -30,8 +30,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:3000", // Set the frontend URL explicitly
-  credentials: true // Allow cookies/sessions to be sent
+  origin: "http://localhost:5173", 
+  credentials: true 
 }));
 
 app.use((req,res,next)=>{
@@ -49,11 +49,7 @@ app.use(function(req, res, next) {
 // Error handler
 app.use(function(err, req, res, next) {
   res.status(err.status || 500);
-  res.render('error', {
-    title: "Error", 
-    message: err.message,
-    error: req.app.get('env') === 'development' ? err : {} 
-  });
+  res.json( {message: err.message});
 });
 
 module.exports = app;

@@ -4,6 +4,10 @@ npm-debug.log*
 yarn-error.log
 package-lock.json
 yarn.lock
+pids/
+*.pid
+*.seed
+*.pid.lock
 
 # Logs
 logs/
@@ -11,6 +15,8 @@ logs/
 logs/**/*.log
 debug.log
 error.log
+server/debug.log
+client/debug.log
 
 # Environment variables
 .env
@@ -25,11 +31,18 @@ error.log
 .DS_Store
 Thumbs.db
 
-# Build output (React frontend)
+# Build output (React frontend & Vite)
 client/build/
 client/.parcel-cache/
 client/.next/
 client/.cache/
+client/.output/
+client/.vite/
+client/dist/
+client/.eslintcache
+
+# TypeScript build artifacts (if applicable)
+client/*.tsbuildinfo
 
 # Coverage reports
 coverage/
@@ -49,3 +62,8 @@ server/database.sqlite
 # Misc
 *.bak
 *.swp
+
+# OS-specific files
+$RECYCLE.BIN/
+.AppleDouble
+.LSOverride
