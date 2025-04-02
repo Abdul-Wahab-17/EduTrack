@@ -20,7 +20,13 @@ function Dashboard() {
             })
             .catch(() => navigate("/login")); // Redirect on error
     }, [navigate]);
-    return isAuthenticated ? <h1>Welcome to the Dashboard {username} </h1> : null;
+    return (
+        <div className="min-h-screen flex justify-center items-center bg-gray-100">
+            <h1 className="text-3xl font-semibold text-gray-800">
+                Welcome to the Dashboard, {username}
+            </h1>
+        </div>
+    );
 }
 
 export default Dashboard;
