@@ -1,7 +1,7 @@
 const mysql = require('mysql');
 
 const connection = mysql.createConnection({
-    host: '192.168.18.40',
+    host: 'localhost',
     user: 'root',
     password: 'letmein', 
     database: 'lms'
@@ -18,5 +18,4 @@ connection.connect((err) => {
 
 
 
-// Export connection to use it in routes
 module.exports = connection;
