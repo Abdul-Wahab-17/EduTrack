@@ -8,26 +8,30 @@ import Dashboard from './pages/dashboard'
 import Contact from './pages/contact'
 import Navbar from './components/navbar'
 import Footer from './components/footer'
-import './App.css'
+
 
 function App()  {
   const [isAuthenticated, setAuthenticated] = useState(false);
+  const [role , setRole] = useState("");
+  const [username , setUsername] = useState("");
 
-  // Check if user is authenticated when the app loads
   useEffect(() => {
       axios.get('http://localhost:8080/auth/check', { withCredentials: true })
           .then(res => {
               setAuthenticated(res.data.authenticated);
+              setRole(res.data.user.role);
+              setUsername(res.data.user.username);
+             
           })
-          .catch(() => setAuthenticated(false)); // Handle errors by assuming not authenticated
+          .catch(() => setAuthenticated(false)); 
   }, []);
 
   return (
       <BrowserRouter>
-          <Navbar isAuthenticated={isAuthenticated} setAuthenticated={setAuthenticated} />
+          <Navbar isAuthenticated={isAuthenticated}  />
           <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard  isAuthenticated={isAuthenticated} role={role} username={username} />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login setAuthenticated={setAuthenticated} />} />
               <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} />} />

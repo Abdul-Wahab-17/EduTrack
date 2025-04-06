@@ -16,7 +16,7 @@ passport.use(new localStrategy(function verify(username, password, cb) {
         }
   
         const row = results[0];
-  
+        console.log(row)
   
         if (!row.password || !row.salt) {
             console.error("❌ Missing password or salt in database");
@@ -41,7 +41,7 @@ passport.use(new localStrategy(function verify(username, password, cb) {
 
 passport.serializeUser(function(user,cb){
     process.nextTick(function(){
-        cb(null,{id: user.id , username: user.username});
+        cb(null,{id: user.id , username: user.username , role: user.user_type});
     });
 });
 
@@ -69,10 +69,12 @@ router.post('/logout' , ensureAuthenticated , (req , res) => {
 
 router.get('/check'  , (req , res ) => {
     if (req.isAuthenticated()){   console.log('user is authenticated ' + req.user.username)
-        res.json( {authenticated: true , user:req.user}) }
+        res.json( {authenticated: true , user:req.user , role:req.user.user_type}) 
+    }
     else { console.log('user is not authenticated')
         res.json({ authenticated:false});}
 });
+
 
 
 router.post('/register' , (req , res , next)=>{
@@ -103,7 +105,7 @@ router.post('/register' , (req , res , next)=>{
 
 function ensureAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
-        return next(); // User is authenticated, proceed
+        return next(); 
     }
     res.status(401).send(  "Unauthorized: Please log in" );
 }

@@ -7,7 +7,7 @@ function Navbar({ isAuthenticated }) {
             <div className="container mx-auto flex justify-between items-center">
                 {/* Logo */}
                 <Link to="/" className="text-2xl font-bold">
-                    My LMS
+                    EduTrack
                 </Link>
 
                 {/* Navigation Links */}
