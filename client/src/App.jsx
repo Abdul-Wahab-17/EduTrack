@@ -11,7 +11,7 @@ import Footer from './components/footer'
 
 
 function App()  {
-  const [isAuthenticated, setAuthenticated] = useState(false);
+  const [isAuthenticated, setAuthenticated] = useState(null);
   const [role , setRole] = useState("");
   const [username , setUsername] = useState("");
 

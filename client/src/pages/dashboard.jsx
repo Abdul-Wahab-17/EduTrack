@@ -10,10 +10,17 @@ function Dashboard({isAuthenticated ,role , username}) {
     const navigate = useNavigate();
    
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (isAuthenticated === false) {
             navigate('/login');
         }
     }, [isAuthenticated, navigate]);
+    useEffect(() => {
+        if (isAuthenticated === false) {
+            navigate('/login');
+        }
+    }, [isAuthenticated, navigate]);
+    
+
     
     let content;
     switch (role){
