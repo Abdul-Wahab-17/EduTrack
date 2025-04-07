@@ -78,25 +78,26 @@ router.get('/check'  , (req , res ) => {
 
 
 router.post('/register' , (req , res , next)=>{
-    const { username , password} = req.body;
-    const query = 'insert into users ( username , password , salt) values ( ?,?,?)';
+    const { username , password , email , role} = req.body;
+    console.log(req.body);
+    const query = 'insert into users ( username , password , salt , email , user_type) values ( ?,?,?,?,?)';
 
     db.query(' select * from users where username = ?' , [username] , (err , results) =>{
         if (err) {throw err;}
-        if (results.length !== 0) {
+        if (results.length !== 0) { 
             return res.status(400).send( 'Username already exists' );
         }
         
         var salt = crypto.randomBytes(16);
         crypto.pbkdf2(password , salt,310000 , 32 , 'sha256' , (err , derivedKey)=>{
             if (err) throw err;
-            db.query(query, [username, derivedKey, salt], (err) => {
+            db.query(query, [username, derivedKey, salt , email , role], (err) => {
 
                 if (err) {throw err};
-                var user = { id: this.id , username: username}
+                var user = { id: this.id , username: username , role:role}
                 req.login(user, function(err) {
                     if (err) { return next(err); }
-                    res.redirect('/');
+                    res.status(200).send(`it workedddddddd`);
                   });
             }  );
         } )

@@ -8,6 +8,7 @@ import Dashboard from './pages/dashboard'
 import Contact from './pages/contact'
 import Navbar from './components/navbar'
 import Footer from './components/footer'
+import Register from './pages/register'
 
 
 function App()  {
@@ -35,6 +36,7 @@ function App()  {
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login setAuthenticated={setAuthenticated} />} />
               <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} />} />
+             <Route path="/register" element={ <Register setAuthenticated={setAuthenticated}/>}/>
           </Routes>
           <Footer/>
       </BrowserRouter>

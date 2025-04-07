@@ -14,9 +14,7 @@ function Login({ setAuthenticated }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post("http://localhost:8080/auth/login", formData, {
-                withCredentials: true, // Send session cookies
-            });
+            await axios.post("http://localhost:8080/auth/login", formData, {withCredentials: true });
             setAuthenticated(true);
             navigate("/dashboard");
         } catch (err) {
@@ -36,7 +34,7 @@ function Login({ setAuthenticated }) {
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
-                            required
+                                required
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
