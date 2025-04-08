@@ -95,7 +95,7 @@ router.post('/register' , (req , res , next)=>{
 
                 if (err) {throw err};
                 var user = { id: this.id , username: username , role:role}
-                req.login(user, function(err) {
+                req.logIn(user, function(err) {
                     if (err) { return next(err); }
                     res.status(200).send(`it workedddddddd`);
                   });
