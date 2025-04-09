@@ -15,18 +15,22 @@ function App()  {
   const [isAuthenticated, setAuthenticated] = useState(null);
   const [role , setRole] = useState("");
   const [username , setUsername] = useState("");
+  const [loading , setLoading] = useState(true);
 
   useEffect(() => {
-      axios.get('http://localhost:8080/auth/check', { withCredentials: true })
-          .then(res => {
-              setAuthenticated(res.data.authenticated);
-              setRole(res.data.user.role);
-              setUsername(res.data.user.username);
-             
-          })
-          .catch(() => setAuthenticated(false)); 
+    axios.get('http://localhost:8080/auth/check', { withCredentials: true })
+      .then(res => {
+        setAuthenticated(res.data.authenticated);
+        setRole(res.data.user.role);
+        setUsername(res.data.user.username);
+      })
+      .catch(() => setAuthenticated(false))
+      .finally(() => setLoading(false)); 
   }, []);
 
+  if (loading) {
+    return <div>Loading...</div>; 
+  }
   return (
       <BrowserRouter>
           <Navbar isAuthenticated={isAuthenticated}  />

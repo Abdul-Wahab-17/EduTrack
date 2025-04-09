@@ -14,11 +14,6 @@ function Dashboard({isAuthenticated ,role , username}) {
             navigate('/login');
         }
     }, [isAuthenticated, navigate]);
-    useEffect(() => {
-        if (isAuthenticated === false) {
-            navigate('/login');
-        }
-    }, [isAuthenticated, navigate]);
     
 
     
