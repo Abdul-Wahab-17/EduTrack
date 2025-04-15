@@ -1,15 +1,17 @@
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-function Logout({ setAuthenticated }) {
+function Logout({ setAuthenticated , setRole , setUsername}) {
     const navigate = useNavigate();
 
     function handleLogout() {
         axios.post("http://localhost:8080/auth/logout", {}, { withCredentials: true })
             .then(() => {
                 console.log("Logged out successfully");
-                setAuthenticated(false); // Update global auth state
-                navigate("/login"); // Redirect after logout
+                setAuthenticated(false);
+        setRole("");
+        setUsername("");
+                navigate("/login"); 
             })
             .catch(err => {
                 console.error("Logout failed:", err);

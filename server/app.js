@@ -14,6 +14,7 @@ var { router: authRouter } = require('./routes/auth');
 
 var app = express();
 
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: 'mySecretKey',

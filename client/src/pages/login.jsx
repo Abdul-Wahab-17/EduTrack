@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-function Login({ setAuthenticated }) {
+function Login({ setAuthenticated  }) {
     const [formData, setFormData] = useState({ username: "", password: "" });
     const [error, setError] = useState("");
     const navigate = useNavigate();
@@ -14,10 +14,10 @@ function Login({ setAuthenticated }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post("http://localhost:8080/auth/login", formData, {withCredentials: true });
+            await axios.post("http://localhost:8080/auth/login", formData, {withCredentials: true })
             setAuthenticated(true);
             navigate("/dashboard");
-        } catch (err) {
+        } catch  {
             setError("Invalid credentials");
         }
     };

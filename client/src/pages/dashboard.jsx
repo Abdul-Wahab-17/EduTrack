@@ -1,14 +1,37 @@
-import { useEffect, useState } from "react";
+import {  useEffect  } from "react";
 import { useNavigate } from "react-router-dom";
 import Student from '../components/student';
 import Instructor  from "../components/instructor";
 import Admin from "../components/Admin";
+import { io} from "socket.io-client";
 import axios from "axios";
 
-function Dashboard({isAuthenticated ,role , username}) {
+const socket = io(`http://localhost:8080`);
+
+function Dashboard({isAuthenticated ,role , username , setAuthenticated ,setRole , setUsername}) {
+
+    
   
     const navigate = useNavigate();
+
+    useEffect(()=>{
+        socket.on(`connect` , ()=>{
+            console.log(`user connected`);
+        })
+    })
    
+    useEffect(()=>{
+        axios.get("http://localhost:8080/auth/check", { withCredentials: true })
+        .then((res) => {
+            setAuthenticated(res.data.authenticated);
+    setRole(res.data.user.role);
+    setUsername(res.data.user.username);
+        })
+        .catch(err => {
+            console.error( err);
+        });
+    })
+
     useEffect(() => {
         if (isAuthenticated === false) {
             navigate('/login');

@@ -15,7 +15,6 @@ function App()  {
   const [isAuthenticated, setAuthenticated] = useState(null);
   const [role , setRole] = useState("");
   const [username , setUsername] = useState("");
-  const [loading , setLoading] = useState(true);
 
   useEffect(() => {
     axios.get('http://localhost:8080/auth/check', { withCredentials: true })
@@ -25,22 +24,19 @@ function App()  {
         setUsername(res.data.user.username);
       })
       .catch(() => setAuthenticated(false))
-      .finally(() => setLoading(false)); 
   }, []);
 
-  if (loading) {
-    return <div>Loading...</div>; 
-  }
+
   return (
       <BrowserRouter>
           <Navbar isAuthenticated={isAuthenticated}  />
           <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard  isAuthenticated={isAuthenticated} role={role} username={username} />} />
+              <Route path="/dashboard" element={ <Dashboard  isAuthenticated={isAuthenticated} role={role} username={username} setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} /> }  />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login setAuthenticated={setAuthenticated} />} />
-              <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} />} />
-             <Route path="/register" element={ <Register setAuthenticated={setAuthenticated}/>}/>
+              <Route path="/login" element={<Login setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
+              <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
+             <Route path="/register" element={ <Register setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername}/>}/>
           </Routes>
           <Footer/>
       </BrowserRouter>

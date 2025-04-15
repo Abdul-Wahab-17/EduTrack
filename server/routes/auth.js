@@ -76,7 +76,6 @@ router.get('/check'  , (req , res ) => {
 });
 
 
-
 router.post('/register' , (req , res , next)=>{
     const { username , password , email , role} = req.body;
     console.log(req.body);

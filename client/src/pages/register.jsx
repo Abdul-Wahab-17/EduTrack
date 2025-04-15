@@ -2,7 +2,7 @@ import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Register = ({ setAuthenticated }) => {
+const Register = ({ setAuthenticated , setRole , setUsername }) => {
     const [formData, setFormData] = useState({
         username: "",
         password: "",
@@ -39,6 +39,9 @@ const Register = ({ setAuthenticated }) => {
             );
 
             setAuthenticated(true);
+            setRole(formData.role);
+            setUsername(formData.username);
+            
             navigate("/dashboard");
         } catch (err) {
             const message =
