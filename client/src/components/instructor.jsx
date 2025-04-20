@@ -1,9 +1,29 @@
+import axios from 'axios';
+import { useEffect, useState } from 'react';
+
 function Instructor() {
-    return (
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    axios.get(`http://localhost:8080/data/courses`, { withCredentials: true })
+      .then((res) => {
+        setCourses(res.data);
+      });
+  }, []);
+
+  return (
     <>
-        <h1> Instructor dashboard here</h1>
+      <h1>Instructor Dashboard</h1>
+      <h3>Your Courses:</h3>
+      {courses.map(course => (
+  <div key={course.id}>
+    <p>Title: {course.title}</p>
+    <br />
+  </div>
+))}
+
     </>
-    );
+  );
 }
 
-export default Instructor
+export default Instructor;

@@ -36,7 +36,7 @@ function App()  {
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
               <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
-             <Route path="/register" element={ <Register setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername}/>}/>
+             <Route path="/register" element={ <Register role={role} username={username}  setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername}/>}/>
           </Routes>
           <Footer/>
       </BrowserRouter>

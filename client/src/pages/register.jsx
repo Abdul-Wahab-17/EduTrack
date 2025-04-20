@@ -1,8 +1,8 @@
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Register = ({ setAuthenticated , setRole , setUsername }) => {
+const Register = ({ role, username, setAuthenticated, setRole, setUsername }) => {
     const [formData, setFormData] = useState({
         username: "",
         password: "",
@@ -41,15 +41,19 @@ const Register = ({ setAuthenticated , setRole , setUsername }) => {
             setAuthenticated(true);
             setRole(formData.role);
             setUsername(formData.username);
-            
+
             navigate("/dashboard");
         } catch (err) {
-            const message =
-                err?.response?.data
-                "Registration failed";
+            const message = err?.response?.data?.message || "Registration failed";
             setError(message);
         }
     };
+
+    useEffect(() => {
+        if (role && username) {
+            console.log("Updated Role and Username:", role, username);
+        }
+    }, [role, username]);
 
     return (
         <form onSubmit={handleSubmit} className="max-w-md mx-auto p-6 bg-white shadow-md rounded-md space-y-4">
