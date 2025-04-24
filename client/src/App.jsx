@@ -1,20 +1,23 @@
-import { useState , useEffect } from 'react'
-import axios from 'axios'
-import { BrowserRouter , Routes , Route } from 'react-router-dom'
-import Logout from './pages/logout'
-import Login from './pages/login'
-import Home from './pages/home'
-import Dashboard from './pages/dashboard'
-import Contact from './pages/contact'
-import Navbar from './components/navbar'
-import Footer from './components/footer'
-import Register from './pages/register'
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+import Logout from './pages/logout';
+import Login from './pages/login';
+import Home from './pages/home';
+import Dashboard from './pages/dashboard';
+import Contact from './pages/contact';
+import Navbar from './components/navbar';
+import Footer from './components/footer';
+import Register from './pages/register';
 
-function App()  {
+import ChatPage from './pages/ChatPage';
+import ChatRoom from './pages/ChatRoom';
+
+function App() {
   const [isAuthenticated, setAuthenticated] = useState(null);
-  const [role , setRole] = useState("");
-  const [username , setUsername] = useState("");
+  const [role, setRole] = useState("");
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
     axios.get('http://localhost:8080/auth/check', { withCredentials: true })
@@ -23,25 +26,50 @@ function App()  {
         setRole(res.data.user.role);
         setUsername(res.data.user.username);
       })
-      .catch(() => setAuthenticated(false))
+      .catch(() => setAuthenticated(false));
   }, []);
 
-
   return (
-      <BrowserRouter>
-          <Navbar isAuthenticated={isAuthenticated}  />
-          <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={ <Dashboard  isAuthenticated={isAuthenticated} role={role} username={username} setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} /> }  />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
-              <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
-             <Route path="/register" element={ <Register role={role} username={username}  setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername}/>}/>
-          </Routes>
-          <Footer/>
-      </BrowserRouter>
+    <BrowserRouter>
+      <Navbar isAuthenticated={isAuthenticated} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+
+        <Route path="/dashboard" element={isAuthenticated ? <Dashboard isAuthenticated={isAuthenticated} role={role} username={username} setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} /> : <Login setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
+
+        <Route path="/contact" element={<Contact />} />
+
+        {/* Chat Pages */}
+     
+        <Route
+  path="/chat"
+  element={
+    isAuthenticated 
+      ? <ChatPage username={username} /> 
+      : <Login  />
+  }
+/>
+<Route
+  path="/chat/:recipient"
+  element={
+    isAuthenticated
+      ? <ChatRoom username={username} />
+      : <Login setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername}/>
+  }
+/>
+        
+
+        <Route path="/login" element={<Login setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
+
+        <Route path="/logout" element={<Logout setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
+
+        <Route path="/register" element={<Register role={role} username={username} setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
+        
+        <Route path="/chat/:recipient" element={isAuthenticated ? <ChatRoom username={username} /> : <Login setAuthenticated={setAuthenticated} setRole={setRole} setUsername={setUsername} />} />
+      </Routes>
+      <Footer />
+    </BrowserRouter>
   );
 }
 
-
-export default App
+export default App;

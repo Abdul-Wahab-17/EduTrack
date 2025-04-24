@@ -26,4 +26,14 @@ router.get(`/enrolledCourses` , ensureAuthenticated , ensureStudent , (req , res
         res.json(result);
     })
 })
+
+
+router.get('/unenrolledCourses' ,ensureAuthenticated , ensureStudent , (req,res)=>{
+    var id = req.user.id;
+    console.log(id);
+    db.query(`select c.title from courses c where c.course_id not in (select f.course_id from enrolledCourses f where f.student_id = (select s.student_id from students s where s.user_id = ?) )`,[id] , (err , result)=>{
+
+        res.json(result);
+    })
+})
 module.exports = router;

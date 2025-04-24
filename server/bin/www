@@ -21,17 +21,59 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
-var io = new Server(server ,  {
-  cors: {
-    origin: "http://localhost:3000", // <-- your React app URL
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
-io.on(`connection` , (socket)=>{
-  console.log(`a user connected`);
-})
 
+var {Server} = require(`socket.io`);
+
+const io = new Server(server, {
+  cors: { origin: 'http://localhost:3000', credentials: true }
+});
+
+const userSocketMap = {};
+const db = require('../db');
+
+// helper to remove a socket entry on disconnect
+function removeUserBySocketId(id) {
+  for (const [user, sockId] of Object.entries(userSocketMap)) {
+    if (sockId === id) {
+      delete userSocketMap[user];
+      break;
+    }
+  }
+}
+
+io.on('connection', socket => {
+  // register this socket under a username
+  socket.on('register_user', username => {
+    console.log('>>> [server] register_user for', username);
+    userSocketMap[username] = socket.id;
+  });
+  
+
+  // handle send_message from client
+  socket.on('send_message', async ({ sender, receiver, message }) => {
+    console.log('>>> [server] send_message payload:', sender, receiver, message);
+    try {
+      // 1️⃣ persist to DB
+      await db.query(
+        'INSERT INTO messages (sender, receiver, message) VALUES (?, ?, ?)',
+        [sender, receiver, message]
+      );
+
+      // 2️⃣ if receiver online, emit to them
+      const toSocket = userSocketMap[receiver];
+      if (toSocket) {
+        io.to(toSocket).emit('new_message', { sender, message });
+      }
+      // if offline, we do nothing (they’ll fetch from DB when they come online)
+    } catch (err) {
+      console.error('Error in send_message handler:', err);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    removeUserBySocketId(socket.id);
+  });
+});
 /**
  * Listen on provided port, on all network interfaces.
  */

@@ -13,6 +13,7 @@ const MySQLStore = require('express-mysql-session')(session);
 var authRouter = require('./routes/auth');
 var dataRouter = require(`./routes/data`);
 
+
 var app = express();
 
 
@@ -44,6 +45,8 @@ app.use((req,res,next)=>{
 
 app.use('/auth', authRouter);
 app.use(`/data` , dataRouter);
+app.use('/api', require('./routes/messages'));
+
 
 app.use(function(req, res, next) {
   next(createError(404, 'Page Not Found')); 
