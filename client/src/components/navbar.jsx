@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import '../index.css';
 
-function Navbar({ isAuthenticated }) {
+function Navbar({ isAuthenticated, role  }) {
+  
+    
     return (
         <nav className="bg-blue-600 text-white p-4 shadow-md">
             <div className="container mx-auto flex justify-between items-center">
@@ -11,14 +13,28 @@ function Navbar({ isAuthenticated }) {
                 </Link>
 
                 {/* Navigation Links */}
-                <div className="space-x-6">
+                <div className="space-x-6 flex items-center">
                     <Link to="/" className="hover:text-gray-300">Home</Link>
+
                     {isAuthenticated && (
                         <>
                             <Link to="/dashboard" className="hover:text-gray-300">Dashboard</Link>
                             <Link to="/chat" className="hover:text-gray-300">Chat</Link>
+
+                            {/* Role-based Navigation */}
+                            {role === 'instructor' && (
+                                <Link to="/create-course" className="hover:text-gray-300">Create Course</Link>
+                            )}
+
+                            {role === 'student' && (
+                                <Link to="/my-performance" className="hover:text-gray-300">My Performance</Link>
+                            )}
+                            { role === `student` && (
+                                <Link to='/courses'  className="hover:text-gray-300" > Available Courses</Link>
+                            )}
                         </>
                     )}
+
                     <Link to="/contact" className="hover:text-gray-300">Contact</Link>
 
                     {/* Auth Buttons */}
