@@ -15,6 +15,7 @@ import ChatPage from './pages/ChatPage';
 import ChatRoom from './pages/ChatRoom';
 import CourseList from './pages/CourseList';
 import CreateCourse from './pages/CreateCourse';
+import CourseDetail from './pages/CourseDetail';
 
 function App() {
   const [isAuthenticated, setAuthenticated] = useState(null);
@@ -120,6 +121,7 @@ function App() {
 
         <Route path="/courses" element={<CourseList username={username } role ={role}/>}/>
         <Route path="/courses/create" element={ <CreateCourse role={role} username={username}/>}/>
+        <Route path="/courses/:id" element={ <CourseDetail role={role}/>}/>
       </Routes>
       <Footer />
     </BrowserRouter>

@@ -22,15 +22,13 @@ function Navbar({ isAuthenticated, role  }) {
                             <Link to="/chat" className="hover:text-gray-300">Chat</Link>
 
                             {/* Role-based Navigation */}
-                            {role === 'instructor' && (
-                                <Link to="/create-course" className="hover:text-gray-300">Create Course</Link>
-                            )}
+                           
 
                             {role === 'student' && (
                                 <Link to="/my-performance" className="hover:text-gray-300">My Performance</Link>
                             )}
-                            { role === `student` && (
-                                <Link to='/courses'  className="hover:text-gray-300" > Available Courses</Link>
+                            { role === `student` || role===`instructor` && (
+                                <Link to='/courses'  className="hover:text-gray-300" >Courses</Link>
                             )}
                         </>
                     )}

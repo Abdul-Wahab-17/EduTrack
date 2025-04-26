@@ -1,0 +1,229 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import axios from 'axios';
+
+function CourseDetail({ role }) {
+  const { id } = useParams();
+  const [course, setCourse] = useState(null);
+  const [content, setContent] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      setIsLoading(true);
+      try {
+        const [courseRes, contentRes] = await Promise.all([
+          axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true }),
+          axios.get(`http://localhost:8080/courses/course/${id}/content`, { withCredentials: true })
+        ]);
+        
+        setCourse(courseRes.data);
+        setContent(contentRes.data);
+        
+        // If student, get enrollment progress
+        if (role === 'student') {
+          try {
+            const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, { 
+              withCredentials: true 
+            });
+            const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
+            if (enrollment && enrollment.progress) {
+              setProgress(enrollment.progress);
+            }
+          } catch (err) {
+            console.error('Error fetching enrollment:', err);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching course data:', err);
+        setError('Failed to load course. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourseData();
+  }, [id, role]);
+
+  const updateProgress = async (newProgress) => {
+    try {
+      await axios.put(
+        `http://localhost:8080/courses/course/${id}/progress`,
+        { progress: newProgress },
+        { withCredentials: true }
+      );
+      setProgress(newProgress);
+    } catch (err) {
+      console.error('Error updating progress:', err);
+    }
+  };
+
+  const handleContentComplete = (contentId) => {
+    // Calculate new progress based on completed content
+    const totalItems = content.length;
+    const newProgress = Math.min(((progress * totalItems) + 1) / totalItems * 100, 100);
+    updateProgress(newProgress);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return <div className="text-center mt-8">Loading course...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center mt-8 text-red-500">{error}</div>;
+  }
+
+  if (!course) {
+    return <div className="text-center mt-8">Course not found</div>;
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <Link to="/courses" className="text-blue-500 hover:underline">
+          &larr; Back to Courses
+        </Link>
+      </div>
+      
+      <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
+            <p className="text-gray-600 mb-4">Instructor: {course.instructor_name}</p>
+            {course.duration_weeks && (
+              <p className="text-gray-600 mb-4">Duration: {course.duration_weeks} weeks</p>
+            )}
+            <p className="text-gray-800 mb-6">{course.description}</p>
+          </div>
+          
+          {role === 'instructor' && (
+            <Link 
+              to={`/courses/${id}/edit`}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
+            >
+              Edit Course
+            </Link>
+          )}
+        </div>
+        
+        {role === 'student' && (
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Your Progress</h3>
+            <div className="w-full bg-gray-200 rounded-full h-4">
+              <div 
+                className="bg-green-500 h-4 rounded-full" 
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+            <p className="text-right mt-1">{Math.round(progress)}%</p>
+          </div>
+        )}
+      </div>
+      
+      {role === 'instructor' && (
+        <div className="mb-8">
+          <Link 
+            to={`/courses/${id}/content/create`}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Add Course Content
+          </Link>
+        </div>
+      )}
+      
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h2 className="text-2xl font-semibold mb-6">Course Content</h2>
+        
+        {content.length === 0 ? (
+          <p>No content available for this course yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {content.map((item) => (
+              <div 
+                key={item.post_id} 
+                className="border-b pb-4 last:border-b-0"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center">
+                      {item.content_type === 'lecture' && (
+                        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
+                          Lecture
+                        </span>
+                      )}
+                      {item.content_type === 'assignment' && (
+                        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
+                          Assignment
+                        </span>
+                      )}
+                      {item.content_type === 'quiz' && (
+                        <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
+                          Quiz
+                        </span>
+                      )}
+                      {item.content_type === 'announcement' && (
+                        <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
+                          Announcement
+                        </span>
+                      )}
+                      {item.content_type === 'slide' && (
+                        <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
+                          Slides
+                        </span>
+                      )}
+                      <h3 className="text-xl font-medium">{item.postcol}</h3>
+                    </div>
+                    {item.timeOfPost && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Posted on {formatDate(item.timeOfPost)}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Link 
+                      to={`/courses/${id}/content/${item.post_id}`}
+                      className="text-blue-500 hover:underline"
+                    >
+                      View
+                    </Link>
+                    
+                    {role === 'instructor' && (
+                      <Link 
+                        to={`/courses/${id}/content/${item.post_id}/edit`}
+                        className="ml-4 text-yellow-500 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                    )}
+                  </div>
+                </div>
+                
+                {role === 'student' && (
+                  <button
+                    onClick={() => handleContentComplete(item.post_id)}
+                    className="mt-2 text-sm bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded"
+                  >
+                    Mark as Completed
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default CourseDetail;
