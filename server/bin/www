@@ -27,9 +27,6 @@ function removeUserBySocketId(id) {
 // --- mediasoup setup ---
 let worker;
 let router;
-let broadcasterTransport;
-let producer;
-let consumers = [];
 
 (async () => {
   worker = await mediasoup.createWorker();
@@ -48,6 +45,8 @@ let consumers = [];
     },
   ]});
 })();
+        // username -> socket.id
+const userTransports = {};             // (Optional: Global list if needed, but you can rely on userTransports now)
 
 io.on('connection', socket => {
   console.log('New socket connected:', socket.id);
@@ -74,80 +73,176 @@ io.on('connection', socket => {
     }
   });
 
-  socket.on('disconnect', () => {
-    removeUserBySocketId(socket.id);
-  });
-
   // --- VIDEO Q&A handling (new) ---
+
   socket.on('getRtpCapabilities', (callback) => {
     callback(router.rtpCapabilities);
   });
 
   socket.on('createProducerTransport', async (callback) => {
-    const transport = await router.createWebRtcTransport({ listenIps: [{ ip: '127.0.0.1', announcedIp: null }] });
-    broadcasterTransport = transport;
-    callback({
-      id: transport.id,
-      iceParameters: transport.iceParameters,
-      iceCandidates: transport.iceCandidates,
-      dtlsParameters: transport.dtlsParameters,
-    });
+    try {
+      const transport = await router.createWebRtcTransport({
+        listenIps: [{ ip: '127.0.0.1', announcedIp: null }]
+      });
 
-    transport.on('dtlsstatechange', dtlsState => {
-      if (dtlsState === 'closed') transport.close();
-    });
+      userTransports[socket.id] = {
+        producerTransport: transport,
+        consumerTransports: [],
+        producer: null
+      };
+
+      callback({
+        id: transport.id,
+        iceParameters: transport.iceParameters,
+        iceCandidates: transport.iceCandidates,
+        dtlsParameters: transport.dtlsParameters,
+      });
+
+      transport.on('dtlsstatechange', dtlsState => {
+        if (dtlsState === 'closed') transport.close();
+      });
+
+    } catch (error) {
+      console.error('Error creating producer transport:', error);
+      callback({ error: error.message });
+    }
   });
 
   socket.on('connectProducerTransport', async ({ dtlsParameters }, callback) => {
-    await broadcasterTransport.connect({ dtlsParameters });
-    callback();
+    const userData = userTransports[socket.id];
+    if (!userData || !userData.producerTransport) {
+      console.error('No producer transport found for socket:', socket.id);
+      return;
+    }
+    try {
+      if (userData.producerTransport.dtlsState === 'new') {
+        await userData.producerTransport.connect({ dtlsParameters });
+      }
+      callback();
+    } catch (error) {
+      console.error('Error connecting producer transport:', error);
+      callback({ error: error.message });
+    }
   });
 
   socket.on('produce', async ({ kind, rtpParameters }, callback) => {
-    producer = await broadcasterTransport.produce({ kind, rtpParameters });
-    callback({ id: producer.id });
+    const userData = userTransports[socket.id];
+    if (!userData || !userData.producerTransport) {
+      console.error('No producer transport found for producing');
+      return;
+    }
+    try {
+      const producer = await userData.producerTransport.produce({ kind, rtpParameters });
+      userData.producer = producer;
 
-    producer.on('transportclose', () => producer.close());
+      callback({ id: producer.id });
+
+      producer.on('transportclose', () => {
+        producer.close();
+      });
+
+    } catch (error) {
+      console.error('Error producing:', error);
+      callback({ error: error.message });
+    }
   });
 
   socket.on('createConsumerTransport', async (callback) => {
-    const transport = await router.createWebRtcTransport({ listenIps: [{ ip: '127.0.0.1', announcedIp: null }] });
-    consumers.push({ transport });
-    callback({
-      id: transport.id,
-      iceParameters: transport.iceParameters,
-      iceCandidates: transport.iceCandidates,
-      dtlsParameters: transport.dtlsParameters,
-    });
+    try {
+      const transport = await router.createWebRtcTransport({
+        listenIps: [{ ip: '127.0.0.1', announcedIp: null }]
+      });
 
-    transport.on('dtlsstatechange', dtlsState => {
-      if (dtlsState === 'closed') transport.close();
-    });
+      if (!userTransports[socket.id]) {
+        userTransports[socket.id] = { producerTransport: null, consumerTransports: [], producer: null };
+      }
+      userTransports[socket.id].consumerTransports.push(transport);
+
+      callback({
+        id: transport.id,
+        iceParameters: transport.iceParameters,
+        iceCandidates: transport.iceCandidates,
+        dtlsParameters: transport.dtlsParameters,
+      });
+
+      transport.on('dtlsstatechange', dtlsState => {
+        if (dtlsState === 'closed') transport.close();
+      });
+
+    } catch (error) {
+      console.error('Error creating consumer transport:', error);
+      callback({ error: error.message });
+    }
   });
 
   socket.on('connectConsumerTransport', async ({ dtlsParameters, transportId }, callback) => {
-    const consumerTransport = consumers.find(t => t.transport.id === transportId).transport;
-    await consumerTransport.connect({ dtlsParameters });
-    callback();
+    const userData = userTransports[socket.id];
+    if (!userData) {
+      console.error('No user data for connecting consumer transport');
+      return;
+    }
+    const transport = userData.consumerTransports.find(t => t.id === transportId);
+    if (!transport) {
+      console.error('No consumer transport found with id:', transportId);
+      return;
+    }
+    try {
+      if (transport.dtlsState === 'new') {
+        await transport.connect({ dtlsParameters });
+      }
+      callback();
+    } catch (error) {
+      console.error('Error connecting consumer transport:', error);
+      callback({ error: error.message });
+    }
   });
 
   socket.on('consume', async ({ rtpCapabilities, transportId }, callback) => {
-    if (!router.canConsume({ producerId: producer.id, rtpCapabilities })) {
-      console.error('Cannot consume');
+    const userData = userTransports[socket.id];
+    if (!userData || !userData.producer) {
+      console.error('No producer available to consume');
       return;
     }
-    const consumerTransport = consumers.find(t => t.transport.id === transportId).transport;
-    const consumer = await consumerTransport.consume({
-      producerId: producer.id,
-      rtpCapabilities,
-      paused: false,
-    });
-    callback({
-      id: consumer.id,
-      producerId: producer.id,
-      kind: consumer.kind,
-      rtpParameters: consumer.rtpParameters,
-    });
+    const transport = userData.consumerTransports.find(t => t.id === transportId);
+    if (!transport) {
+      console.error('Consumer transport not found');
+      return;
+    }
+    try {
+      if (!router.canConsume({ producerId: userData.producer.id, rtpCapabilities })) {
+        console.error('Cannot consume');
+        return;
+      }
+
+      const consumer = await transport.consume({
+        producerId: userData.producer.id,
+        rtpCapabilities,
+        paused: false,
+      });
+
+      callback({
+        id: consumer.id,
+        producerId: userData.producer.id,
+        kind: consumer.kind,
+        rtpParameters: consumer.rtpParameters,
+      });
+
+    } catch (error) {
+      console.error('Error consuming:', error);
+      callback({ error: error.message });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.id);
+    const userData = userTransports[socket.id];
+    if (userData) {
+      if (userData.producerTransport) userData.producerTransport.close();
+      if (userData.producer) userData.producer.close();
+      userData.consumerTransports.forEach(t => t.close());
+      delete userTransports[socket.id];
+    }
+    removeUserBySocketId(socket.id);
   });
 });
 

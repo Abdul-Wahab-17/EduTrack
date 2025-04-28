@@ -17,6 +17,7 @@ import CourseDetail from './pages/CourseDetail';
 import UploadFile from './pages/UploadFile';
 import ViewContent from './pages/viewContent';
 import Broadcast from './pages/Broadcast';
+import Watch from './pages/watch';
 
 function App() {
   const [isAuthenticated, setAuthenticated] = useState(null);
@@ -54,7 +55,12 @@ function App() {
         <Route path="/courses/:id" element={<CourseDetail role={role} />} />
         <Route path="/courses/:id/content/create" element={<UploadFile />} />
         <Route path="/courses/:id/content/:contentId" element={<ViewContent />} />
+
+
         <Route path="broadcast" element={<Broadcast role={role} username={username}/>}/>
+        <Route path="watch" element={ <Watch />}/>
+
+
       </Routes>
       <Footer />
     </BrowserRouter>

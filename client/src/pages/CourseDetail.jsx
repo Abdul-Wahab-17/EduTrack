@@ -2,6 +2,48 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 
+function Success({setSucMessage}){
+  return (
+    <>
+      <p>it worked</p>
+      <button onClick={()=>{setSucMessage(false)}} >ok</button>
+    </>
+  )
+}
+function Delete({ setDelMessage, setSucMessage , courseId , contentId}) {
+  console.log( `courseid: `+courseId + ` contentid: ` + contentId)
+  const handleConfirm = async () =>{
+   try { await axios.delete(`http://localhost:8080/content/remove/${courseId}/${contentId}` , {withCredentials:true})}
+   catch (err) {console.log(err)}
+    setDelMessage(false)
+    setSucMessage(true)
+  }
+  const handleCancel = () =>{
+    setDelMessage(false)
+  }
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+        <p className="text-xl mb-4">Are you sure you want to delete?</p>
+        <div className="flex justify-end">
+          <button 
+            onClick={handleConfirm}
+            className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+          >
+            Yes
+          </button>
+          <button 
+            onClick={handleCancel} 
+            className="bg-gray-500 text-white px-4 py-2 rounded"
+          >
+            No
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CourseDetail({ role }) {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
@@ -9,6 +51,10 @@ function CourseDetail({ role }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [delMessage , setDelMessage] = useState(false);
+  const [sucMessage , setSucMessage] = useState(false);
+
+
 
   useEffect(() => {
     const fetchCourseData = async () => {
@@ -199,13 +245,20 @@ function CourseDetail({ role }) {
                     </Link>
                     
                     {role === 'instructor' && (
-                      <Link 
-                        to={`/courses/${id}/content/${item.content_id}/edit`}
+                      <button 
+                        onClick={() =>{ setDelMessage(true)}}
                         className="ml-4 text-yellow-500 hover:underline"
                       >
-                        Edit
-                      </Link>
+                        Delete
+                      </button>
+                     
                     )}
+                  </div>
+                  <div> 
+                    {delMessage && ( <Delete  setDelMessage={setDelMessage} setSucMessage={setSucMessage} courseId={id} contentId={item.content_id} />)}
+                  </div>
+                  <div>
+                    {sucMessage && (<Success setSucMessage={setSucMessage}/>)}
                   </div>
                 </div>
                 

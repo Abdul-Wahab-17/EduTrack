@@ -5,7 +5,7 @@ var crypto = require('crypto');
 var localStrategy = require('passport-local');
 var passport = require('passport');
 
-const { ensureAuthenticated, ensureInstructor } = require('../middleware/authMiddleware');
+const { ensureAuthenticated } = require('../middleware/authMiddleware');
 
 passport.use(new localStrategy(function verify(username, password, cb) {
     db.query('SELECT * FROM users WHERE username = ?', [username], function(err, results) {
@@ -105,6 +105,6 @@ router.post('/register', (req, res, next) => {
             });
         });
     });
-});
+}); 
 
 module.exports = router;
