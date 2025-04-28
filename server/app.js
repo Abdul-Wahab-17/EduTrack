@@ -14,6 +14,7 @@ var authRouter = require('./routes/auth');
 var dataRouter = require(`./routes/data`);
 var messageRouter = require(`./routes/messages`);
 var courseRouter = require(`./routes/courses`);
+var contentRouter = require(`./routes/content`);
 
 
 var app = express();
@@ -48,7 +49,8 @@ app.use((req,res,next)=>{
 app.use('/auth', authRouter);
 app.use(`/data` , dataRouter);
 app.use('/api', messageRouter);
-app.use(`/courses` , courseRouter)
+app.use(`/courses` , courseRouter);
+app.use(`/content` , contentRouter);
 
 
 app.use(function(req, res, next) {

@@ -3,44 +3,6 @@ const router = express.Router();
 var db = require(`../db`);
 
 const { ensureAuthenticated, ensureInstructor , ensureStudent } = require('../middleware/authMiddleware');
-
-  router.post('/course', ensureAuthenticated, ensureInstructor, (req, res) => {
-    const { title, description, price, duration_weeks, status } = req.body;
-    const userId = req.user.id;
-    
-    // First get the instructor ID for this user
-    db.query(
-      'SELECT instructor_id FROM instructors WHERE user_id = ?',
-      [userId],
-      (err, result) => {
-        if (err || result.length === 0) {
-          console.error('Error finding instructor:', err);
-          return res.status(400).json({ error: 'Invalid instructor account' });
-        }
-        
-        const instructorId = result[0].instructor_id;
-        
-        // Now create the course
-        db.query(
-          `INSERT INTO courses (title, description, instructor_id, price, duration_weeks, status)
-          VALUES (?, ?, ?, ?, ?, ?)`,
-          [title, description, instructorId, price, duration_weeks, status || 'draft'],
-          (err, result) => {
-            if (err) {
-              console.error('Error creating course:', err);
-              return res.status(500).json({ error: 'Database error' });
-            }
-            
-            res.status(201).json({ 
-              id: result.insertId,
-              message: 'Course created successfully' 
-            });
-          }
-        );
-      }
-    );
-  });
-  
   // Update a course (instructor only)
   router.put('/course/:id', ensureAuthenticated, ensureInstructor, (req, res) => {
     const courseId = req.params.id;
@@ -83,65 +45,11 @@ const { ensureAuthenticated, ensureInstructor , ensureStudent } = require('../mi
     );
   });
   
-  // Student enrolls in a course
-  router.post('/enroll', ensureAuthenticated, ensureStudent, (req, res) => {
-    const { course_id } = req.body;
-    const userId = req.user.id;
-    
-    // Get the student_id
-    db.query(
-      'SELECT student_id FROM students WHERE user_id = ?',
-      [userId],
-      (err, result) => {
-        if (err || result.length === 0) {
-          console.error('Error finding student:', err);
-          return res.status(400).json({ error: 'Invalid student account' });
-        }
-        
-        const studentId = result[0].student_id;
-        
-        // Check if already enrolled
-        db.query(
-          'SELECT enrollment_id FROM enrolledcourses WHERE student_id = ? AND course_id = ?',
-          [studentId, course_id],
-          (err, result) => {
-            if (err) {
-              console.error('Error checking enrollment:', err);
-              return res.status(500).json({ error: 'Database error' });
-            }
-            
-            if (result.length > 0) {
-              return res.status(400).json({ error: 'Already enrolled in this course' });
-            }
-            
-            // Create the enrollment
-            db.query(
-              'INSERT INTO enrolledcourses (student_id, course_id) VALUES (?, ?)',
-              [studentId, course_id],
-              (err, result) => {
-                if (err) {
-                  console.error('Error enrolling in course:', err);
-                  return res.status(500).json({ error: 'Database error' });
-                }
-                
-                res.status(201).json({ 
-                  id: result.insertId,
-                  message: 'Successfully enrolled in course' 
-                });
-              }
-            );
-          }
-        );
-      }
-    );
-  });
-  
-  // Get course content (posts, assignments, quizzes, etc)
-  
+
   // Create course content (post/announcement/lecture/etc)
-  router.post('/course/:id/content', ensureAuthenticated, ensureInstructor, (req, res) => {
+  router.post('/upload/:id', ensureAuthenticated, ensureInstructor, (req, res) => {
     const courseId = req.params.id;
-    const { content_type, title, content } = req.body;
+    const { content_type, fileName, file } = req.body;
     const userId = req.user.id;
     
     // Verify this instructor owns this course
@@ -163,7 +71,7 @@ const { ensureAuthenticated, ensureInstructor , ensureStudent } = require('../mi
         
         // Create the post entry first
         db.query(
-          `INSERT INTO post (timeOfPost, postcol, courses_course_id) 
+          `INSERT INTO content (timeOfPost, file_name, ourse_id) 
            VALUES (CURRENT_TIMESTAMP, ?, ?)`,
           [title, courseId],
           (err, result) => {

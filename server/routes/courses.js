@@ -18,7 +18,7 @@ router.get(`/enrolledCourses` , ensureAuthenticated , ensureStudent , (req , res
 router.get('/unenrolledCourses' ,ensureAuthenticated , ensureStudent , (req,res)=>{
     var id = req.user.id;
     console.log(id);
-    db.query(`select c.title from courses c where c.course_id not in (select f.course_id from enrolledCourses f where f.student_id = (select s.student_id from students s where s.user_id = ?) )`,[id] , (err , result)=>{
+    db.query(`select c.course_id as id ,  c.title from courses c where c.course_id not in (select f.course_id from enrolledCourses f where f.student_id = (select s.student_id from students s where s.user_id = ?) )`,[id] , (err , result)=>{
 
         res.json(result);
     })
@@ -81,7 +81,7 @@ router.get('/allCourses', ensureAuthenticated, (req, res) => {
     );
   });
   
-  router.post('/createcourse', async (req, res) => {
+  router.post('/createcourse', ensureAuthenticated , ensureInstructor,  (req, res) => {
     const { instructorId, title, description, status } = req.body;
   
     if (!instructorId || !title || !description || !status) {
@@ -96,78 +96,59 @@ router.get('/allCourses', ensureAuthenticated, (req, res) => {
   
         
 
-         router.get('/course/:id/content', ensureAuthenticated, (req, res) => {
-             const courseId = req.params.id;
-             
-             // First verify the user has access to this course
-             const userId = req.user.id;
-             const userType = req.user.user_type;
-             
-             let accessCheckQuery;
-             let accessCheckParams;
-             
-             if (userType === 'instructor') {
-               accessCheckQuery = `
-                 SELECT 1 FROM courses c
-                 JOIN instructors i ON c.instructor_id = i.instructor_id
-                 WHERE c.course_id = ? AND i.user_id = ?
-               `;
-               accessCheckParams = [courseId, userId];
-             } else if (userType === 'student') {
-               accessCheckQuery = `
-                 SELECT 1 FROM enrolledcourses e
-                 JOIN students s ON e.student_id = s.student_id
-                 WHERE e.course_id = ? AND s.user_id = ?
-               `;
-               accessCheckParams = [courseId, userId];
-             } else {
-               // Staff can access all courses
-               accessCheckQuery = 'SELECT 1';
-               accessCheckParams = [];
-             }
-             
-             db.query(accessCheckQuery, accessCheckParams, (err, result) => {
-               if (err) {
-                 console.error('Error checking course access:', err);
-                 return res.status(500).json({ error: 'Database error' });
-               }
-               
-               if (userType !== 'staff' && result.length === 0) {
-                 return res.status(403).json({ error: 'Not authorized to access this course' });
-               }
-               
-               // Get all course content
-               db.query(
-                 `SELECT p.post_id, p.timeOfPost, p.postcol, 
-                   CASE 
-                     WHEN a.post_post_id IS NOT NULL THEN 'announcement'
-                     WHEN q.post_post_id IS NOT NULL THEN 'quiz' 
-                     WHEN ass.post_post_id IS NOT NULL THEN 'assignment'
-                     WHEN l.post_post_id IS NOT NULL THEN 'lecture'
-                     WHEN s.post_post_id IS NOT NULL THEN 'slide'
-                     ELSE 'post'
-                   END as content_type,
-                   COALESCE(q.quiz_id, ass.assignment_id, NULL) as content_id
-                 FROM post p
-                 LEFT JOIN announcements a ON p.post_id = a.post_post_id
-                 LEFT JOIN quizes q ON p.post_id = q.post_post_id
-                 LEFT JOIN assignments ass ON p.post_id = ass.post_post_id
-                 LEFT JOIN lectures l ON p.post_id = l.post_post_id
-                 LEFT JOIN slides s ON p.post_id = s.post_post_id
-                 WHERE p.courses_course_id = ?
-                 ORDER BY p.timeOfPost DESC`,
-                 [courseId],
-                 (err, result) => {
-                   if (err) {
-                     console.error('Error fetching course content:', err);
-                     return res.status(500).json({ error: 'Database error' });
-                   }
-                   
-                   res.json(result);
-                 }
-               );
-             });
-           });
-           
 
+           
+router.post('/enroll', ensureAuthenticated, ensureStudent, (req, res) => {
+    const { course_id } = req.body;
+    const userId = req.user.id;
+    console.log(userId)
+    
+    // Get the student_id
+    db.query(
+      'SELECT student_id FROM students WHERE user_id = ?',
+      [userId],
+      (err, result) => {
+        if (err || result.length === 0) {
+          console.error('Error finding student:', err);
+          return res.status(400).json({ error: 'Invalid student account' });
+        }
+        
+        const studentId = result[0].student_id;
+        
+        // Check if already enrolled
+        db.query(
+          'SELECT enrollment_id FROM enrolledcourses WHERE student_id = ? AND course_id = ?',
+          [studentId, course_id],
+          (err, result) => {
+            if (err) {
+              console.error('Error checking enrollment:', err);
+              return res.status(500).json({ error: 'Database error' });
+            }
+            
+            if (result.length > 0) {
+              return res.status(400).json({ error: 'Already enrolled in this course' });
+            }
+            
+            // Create the enrollment
+            db.query(
+              'INSERT INTO enrolledcourses (student_id, course_id) VALUES (?, ?)',
+              [studentId, course_id],
+              (err, result) => {
+                if (err) {
+                  console.error('Error enrolling in course:', err);
+                  return res.status(500).json({ error: 'Database error' });
+                }
+                
+                res.status(201).json({ 
+                  id: result.insertId,
+                  message: 'Successfully enrolled in course' 
+                });
+              }
+            );
+          }
+        );
+      }
+    );
+  });
+  
 module.exports = router;

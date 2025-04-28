@@ -9,7 +9,8 @@ function Navbar({ isAuthenticated, role  }) {
             <div className="container mx-auto flex justify-between items-center">
                 {/* Logo */}
                 <Link to="/" className="text-2xl font-bold">
-                    EduTrack
+                {/* <img src="favicon.png"></img> */}
+                 EduTrack
                 </Link>
 
                 {/* Navigation Links */}
@@ -27,7 +28,7 @@ function Navbar({ isAuthenticated, role  }) {
                             {role === 'student' && (
                                 <Link to="/my-performance" className="hover:text-gray-300">My Performance</Link>
                             )}
-                            { role === `student` || role===`instructor` && (
+                            { (role === `student` || role===`instructor`) && (
                                 <Link to='/courses'  className="hover:text-gray-300" >Courses</Link>
                             )}
                         </>

@@ -16,7 +16,7 @@ function CourseDetail({ role }) {
       try {
         const [courseRes, contentRes] = await Promise.all([
           axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true }),
-          axios.get(`http://localhost:8080/courses/course/${id}/content`, { withCredentials: true })
+          axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
         ]);
         
         setCourse(courseRes.data);
@@ -60,7 +60,7 @@ function CourseDetail({ role }) {
     }
   };
 
-  const handleContentComplete = (contentId) => {
+  const handleContentComplete = () => {
     // Calculate new progress based on completed content
     const totalItems = content.length;
     const newProgress = Math.min(((progress * totalItems) + 1) / totalItems * 100, 100);
@@ -150,49 +150,49 @@ function CourseDetail({ role }) {
           <div className="space-y-4">
             {content.map((item) => (
               <div 
-                key={item.post_id} 
+                key={item.content_id} 
                 className="border-b pb-4 last:border-b-0"
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center">
-                      {item.content_type === 'lecture' && (
+                      {item.content_type === 'video' && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Lecture
+                          Video
                         </span>
                       )}
-                      {item.content_type === 'assignment' && (
+                      {item.content_type === 'file' && (
                         <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Assignment
+                          File
                         </span>
                       )}
-                      {item.content_type === 'quiz' && (
+                      {item.content_type === 'audio' && (
                         <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Quiz
+                          Audio
                         </span>
                       )}
-                      {item.content_type === 'announcement' && (
+                      {item.content_type === 'pdf' && (
                         <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Announcement
+                          PDF
                         </span>
                       )}
-                      {item.content_type === 'slide' && (
+                      {item.content_type === 'image' && (
                         <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Slides
+                          Image
                         </span>
                       )}
-                      <h3 className="text-xl font-medium">{item.postcol}</h3>
+                      <h3 className="text-xl font-medium">{item.file_name}</h3>
                     </div>
-                    {item.timeOfPost && (
+                    {item.uploaded_at && (
                       <p className="text-sm text-gray-500 mt-1">
-                        Posted on {formatDate(item.timeOfPost)}
+                        Uploaded on {formatDate(item.uploaded_at)}
                       </p>
                     )}
                   </div>
                   
                   <div>
                     <Link 
-                      to={`/courses/${id}/content/${item.post_id}`}
+                      to={`/courses/${id}/content/${item.content_id}`}
                       className="text-blue-500 hover:underline"
                     >
                       View
@@ -200,7 +200,7 @@ function CourseDetail({ role }) {
                     
                     {role === 'instructor' && (
                       <Link 
-                        to={`/courses/${id}/content/${item.post_id}/edit`}
+                        to={`/courses/${id}/content/${item.content_id}/edit`}
                         className="ml-4 text-yellow-500 hover:underline"
                       >
                         Edit
@@ -211,7 +211,7 @@ function CourseDetail({ role }) {
                 
                 {role === 'student' && (
                   <button
-                    onClick={() => handleContentComplete(item.post_id)}
+                    onClick={() => handleContentComplete()}
                     className="mt-2 text-sm bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded"
                   >
                     Mark as Completed

@@ -13,7 +13,7 @@ const CreateCourse = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:8080/courses/createcourse', {
+     await axios.post('http://localhost:8080/courses/createcourse', {
         instructorId,
         title,
         description,

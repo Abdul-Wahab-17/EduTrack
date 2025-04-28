@@ -1,29 +1,12 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
-
 var app = require('../app');
 var debug = require('debug')('learning:server');
 var http = require('http');
-var {Server} = require(`socket.io`);
+var { Server } = require('socket.io');
+const mediasoup = require('mediasoup');  // <<== ADD THIS
 
-/**
- * Get port from environment and store in Express.
- */
-
-var port = normalizePort(process.env.PORT || '8080');
-app.set('port', port);
-
-/**
- * Create HTTP server.
- */
-
-var server = http.createServer(app);
-
-var {Server} = require(`socket.io`);
-
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: 'http://localhost:3000', credentials: true }
 });
@@ -31,7 +14,7 @@ const io = new Server(server, {
 const userSocketMap = {};
 const db = require('../db');
 
-// helper to remove a socket entry on disconnect
+// --- your existing chat helper ---
 function removeUserBySocketId(id) {
   for (const [user, sockId] of Object.entries(userSocketMap)) {
     if (sockId === id) {
@@ -41,30 +24,51 @@ function removeUserBySocketId(id) {
   }
 }
 
+// --- mediasoup setup ---
+let worker;
+let router;
+let broadcasterTransport;
+let producer;
+let consumers = [];
+
+(async () => {
+  worker = await mediasoup.createWorker();
+  router = await worker.createRouter({ mediaCodecs: [
+    {
+      kind: 'audio',
+      mimeType: 'audio/opus',
+      clockRate: 48000,
+      channels: 2,
+    },
+    {
+      kind: 'video',
+      mimeType: 'video/VP8',
+      clockRate: 90000,
+      parameters: {},
+    },
+  ]});
+})();
+
 io.on('connection', socket => {
-  // register this socket under a username
+  console.log('New socket connected:', socket.id);
+
+  // --- CHAT handling (already working) ---
   socket.on('register_user', username => {
     console.log('>>> [server] register_user for', username);
     userSocketMap[username] = socket.id;
   });
-  
 
-  // handle send_message from client
   socket.on('send_message', async ({ sender, receiver, message }) => {
     console.log('>>> [server] send_message payload:', sender, receiver, message);
     try {
-      // 1️⃣ persist to DB
       await db.query(
         'INSERT INTO messages (sender, receiver, message) VALUES (?, ?, ?)',
         [sender, receiver, message]
       );
-
-      // 2️⃣ if receiver online, emit to them
       const toSocket = userSocketMap[receiver];
       if (toSocket) {
         io.to(toSocket).emit('new_message', { sender, message });
       }
-      // if offline, we do nothing (they’ll fetch from DB when they come online)
     } catch (err) {
       console.error('Error in send_message handler:', err);
     }
@@ -73,71 +77,113 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {
     removeUserBySocketId(socket.id);
   });
+
+  // --- VIDEO Q&A handling (new) ---
+  socket.on('getRtpCapabilities', (callback) => {
+    callback(router.rtpCapabilities);
+  });
+
+  socket.on('createProducerTransport', async (callback) => {
+    const transport = await router.createWebRtcTransport({ listenIps: [{ ip: '127.0.0.1', announcedIp: null }] });
+    broadcasterTransport = transport;
+    callback({
+      id: transport.id,
+      iceParameters: transport.iceParameters,
+      iceCandidates: transport.iceCandidates,
+      dtlsParameters: transport.dtlsParameters,
+    });
+
+    transport.on('dtlsstatechange', dtlsState => {
+      if (dtlsState === 'closed') transport.close();
+    });
+  });
+
+  socket.on('connectProducerTransport', async ({ dtlsParameters }, callback) => {
+    await broadcasterTransport.connect({ dtlsParameters });
+    callback();
+  });
+
+  socket.on('produce', async ({ kind, rtpParameters }, callback) => {
+    producer = await broadcasterTransport.produce({ kind, rtpParameters });
+    callback({ id: producer.id });
+
+    producer.on('transportclose', () => producer.close());
+  });
+
+  socket.on('createConsumerTransport', async (callback) => {
+    const transport = await router.createWebRtcTransport({ listenIps: [{ ip: '127.0.0.1', announcedIp: null }] });
+    consumers.push({ transport });
+    callback({
+      id: transport.id,
+      iceParameters: transport.iceParameters,
+      iceCandidates: transport.iceCandidates,
+      dtlsParameters: transport.dtlsParameters,
+    });
+
+    transport.on('dtlsstatechange', dtlsState => {
+      if (dtlsState === 'closed') transport.close();
+    });
+  });
+
+  socket.on('connectConsumerTransport', async ({ dtlsParameters, transportId }, callback) => {
+    const consumerTransport = consumers.find(t => t.transport.id === transportId).transport;
+    await consumerTransport.connect({ dtlsParameters });
+    callback();
+  });
+
+  socket.on('consume', async ({ rtpCapabilities, transportId }, callback) => {
+    if (!router.canConsume({ producerId: producer.id, rtpCapabilities })) {
+      console.error('Cannot consume');
+      return;
+    }
+    const consumerTransport = consumers.find(t => t.transport.id === transportId).transport;
+    const consumer = await consumerTransport.consume({
+      producerId: producer.id,
+      rtpCapabilities,
+      paused: false,
+    });
+    callback({
+      id: consumer.id,
+      producerId: producer.id,
+      kind: consumer.kind,
+      rtpParameters: consumer.rtpParameters,
+    });
+  });
 });
-/**
- * Listen on provided port, on all network interfaces.
- */
+
+// --- server listen ---
+var port = normalizePort(process.env.PORT || '8080');
+app.set('port', port);
 
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
 
-/**
- * Normalize a port into a number, string, or false.
- */
-
+// --- helpers (unchanged) ---
 function normalizePort(val) {
   var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
+  if (isNaN(port)) return val;
+  if (port >= 0) return port;
   return false;
 }
 
-/**
- * Event listener for HTTP server "error" event.
- */
-
 function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
-
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
+  if (error.syscall !== 'listen') throw error;
+  var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
   switch (error.code) {
     case 'EACCES':
       console.error(bind + ' requires elevated privileges');
       process.exit(1);
-      break;
     case 'EADDRINUSE':
       console.error(bind + ' is already in use');
       process.exit(1);
-      break;
     default:
       throw error;
   }
 }
 
-/**
- * Event listener for HTTP server "listening" event.
- */
-
 function onListening() {
   var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
+  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }

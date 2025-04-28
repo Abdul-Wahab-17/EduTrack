@@ -5,7 +5,7 @@ function Instructor() {
   const [courses, setCourses] = useState([]);
 
   useEffect(() => {
-    axios.get(`http://localhost:8080/data/courses`, { withCredentials: true })
+    axios.get(`http://localhost:8080/courses/courses`, { withCredentials: true })
       .then((res) => {
         setCourses(res.data);
       });
@@ -13,10 +13,11 @@ function Instructor() {
 
   return (
     <>
-      <h1>Instructor Dashboard</h1>
+      <h1>Instructor Dashboard</h1><br />
       <h3>Your Courses:</h3>
       {courses.map(course => (
   <div key={course.id}>
+    <br />
     <p>Title: {course.title}</p>
     <br />
   </div>
