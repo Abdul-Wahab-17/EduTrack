@@ -2,11 +2,27 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 
-function Success({setSucMessage}){
+
+
+
+function Success({setSucMessage , setContent}){
+  const {id} = useParams();
   return (
     <>
-      <p>it worked</p>
-      <button onClick={()=>{setSucMessage(false)}} >ok</button>
+     <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+        <p className="text-xl mb-4">Content deleted successfully.</p>
+        <div className="flex justify-end">
+          <button 
+            onClick={ async ()=>{ setContent(  (await axios.get(`http://localhost:8080/content/${id}}` , {withCredentials:true})).data ) ;setSucMessage(false)}}
+            className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+          >
+            OK
+          </button>
+         
+        </div>
+      </div>
+    </div>
     </>
   )
 }
@@ -121,6 +137,8 @@ function CourseDetail({ role }) {
     });
   };
 
+  
+
   if (isLoading) {
     return <div className="text-center mt-8">Loading course...</div>;
   }
@@ -145,11 +163,15 @@ function CourseDetail({ role }) {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
-            <p className="text-gray-600 mb-4">Instructor: {course.instructor_name}</p>
+            <p className="text-gray-800 mb-4">Instructor: {course.instructor_name}</p>
             {course.duration_weeks && (
-              <p className="text-gray-600 mb-4">Duration: {course.duration_weeks} weeks</p>
+              <p className="text-gray-800 mb-4">Duration: {course.duration_weeks} weeks</p>
             )}
+            { role === 'instructor'  && ( <p className="text-gray-800 mb-4" >Price: {course.price}$</p>)}
+           
+            { role === 'instructor'  && ( <p className="text-gray-800 mb-4" >Creation Date: {new Date(course.created_at).toLocaleDateString('en-CA')} </p>)}
             <p className="text-gray-800 mb-6">{course.description}</p>
+            
           </div>
           
           {role === 'instructor' && (
@@ -258,7 +280,7 @@ function CourseDetail({ role }) {
                     {delMessage && ( <Delete  setDelMessage={setDelMessage} setSucMessage={setSucMessage} courseId={id} contentId={item.content_id} />)}
                   </div>
                   <div>
-                    {sucMessage && (<Success setSucMessage={setSucMessage}/>)}
+                    {sucMessage && (<Success setSucMessage={setSucMessage} setContent={setContent}/>)}
                   </div>
                 </div>
                 

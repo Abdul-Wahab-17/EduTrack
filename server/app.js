@@ -47,6 +47,8 @@ app.use((req,res,next)=>{
   res.locals.user = req.user || null;
   next();
 })
+app.options('*', cors({ origin: 'http://localhost:3000', credentials: true }));
+
 
 app.use('/auth', authRouter);
 app.use(`/data` , dataRouter);

@@ -58,14 +58,24 @@ router.post('/login', passport.authenticate('local'), (req, res) => {
     res.send('hiiiiiiiiiii');
 });
 
-router.post('/logout', ensureAuthenticated, (req, res) => {
-    console.log('got here');
+router.post('/logout',ensureAuthenticated, (req, res) => {
     req.logout(function(err) {
-        if (err) { console.log(err); }
-        res.send('byeeeeeeee');
+      if (err) {
+        console.log(err);
+        return res.status(500).send('Logout failed');
+      }
+      // Destroy session completely
+      req.session.destroy((err) => {
+        if (err) {
+          console.log('Session destruction error:', err);
+          return res.status(500).send('Session destruction failed');
+        }
+        res.clearCookie('connect.sid'); // Clear the session cookie (important)
+        res.send('Logged out successfully');
+      });
     });
-});
-
+  });
+  
 router.get('/check', (req, res) => {
     if (req.isAuthenticated()) {
         console.log('user is authenticated ' + req.user.username + ' with the role: ' + req.user.role + ` with the id: ` + req.user.id);

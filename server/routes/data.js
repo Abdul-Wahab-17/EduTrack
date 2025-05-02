@@ -3,6 +3,22 @@ const router = express.Router();
 var db = require(`../db`);
 
 const { ensureAuthenticated, ensureInstructor , ensureStudent } = require('../middleware/authMiddleware');
+
+
+
+  router.get(`/` , ensureAuthenticated ,(req,res)=>{
+    
+    db.query(`select * from users where user_id = ?` , [req.user.id] , (err , result)=>{
+      if (err){ return res.status(500).send(`error`)}
+      if (result.length ===0 ){ return res.status(404).send(`user not found`); }
+  
+      return res.json( {
+        "profilePic":result[0].profile_picture_url,
+        "email":result[0].email,
+        "joinDate":result[0].created_at
+      })
+    })
+  })
   // Update a course (instructor only)
   router.put('/course/:id', ensureAuthenticated, ensureInstructor, (req, res) => {
     const courseId = req.params.id;
