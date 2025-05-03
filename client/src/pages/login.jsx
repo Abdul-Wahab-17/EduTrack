@@ -51,23 +51,33 @@ export default function Login() {
 
   const validateRegisterForm = () => {
     const errors = {};
+  
     if (!registerForm.name) errors.name = 'Name is required';
+  
     if (!registerForm.email) {
       errors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerForm.email)) {
       errors.email = 'Email is invalid';
     }
+  
     if (!registerForm.password) {
       errors.password = 'Password is required';
     } else if (registerForm.password.length < 6) {
       errors.password = 'Password must be at least 6 characters';
     }
+  
     if (registerForm.password !== registerForm.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
+  
+    if (!registerForm.role) {
+      errors.role = 'Please select a role';
+    }
+  
     setRegisterErrors(errors);
     return Object.keys(errors).length === 0;
   };
+  
 
 const handleRegisterSubmit = async (e) => {
   e.preventDefault();
@@ -78,16 +88,16 @@ const handleRegisterSubmit = async (e) => {
         username: registerForm.name,
         email: registerForm.email,
         password: registerForm.password,
-        role: 'student'  // default role
+        role: registerForm.role 
       };
 
-      const response = await axios.post(
+      await axios.post(
         'http://localhost:8080/auth/register', // adjust URL if needed
         payload,
         { withCredentials: true } // important for session cookie
       );
 
-      const user = response.data.user;
+      const user = { username:payload.username , password:payload.password}
 
       // Set user state, close modal, reset form, navigate
       login(user);  // your login function that sets user context
@@ -99,7 +109,7 @@ const handleRegisterSubmit = async (e) => {
         password: '',
         confirmPassword: ''
       });
-      navigate('dashboard');
+      navigate('/dashboard');
 
     } catch (error) {
       console.error('Registration error:', error.response?.data || error.message);
@@ -112,7 +122,7 @@ const handleRegisterSubmit = async (e) => {
   return (
     <div className="min-h-screen bg-gray-50">
    
-
+    {!showRegisterModal && (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="w-full max-w-md space-y-8 p-10 bg-white rounded-xl shadow-lg">
           <div className="text-center">
@@ -243,11 +253,11 @@ const handleRegisterSubmit = async (e) => {
         </div>
       </div>
 
-
+                  )}
 
                       
       {showRegisterModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -306,8 +316,8 @@ const handleRegisterSubmit = async (e) => {
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number (Optional)
+                  <label htmlFor="profilePic" className="block text-sm font-medium text-gray-700 mb-1">
+                    Profile Picture URL
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -320,7 +330,7 @@ const handleRegisterSubmit = async (e) => {
                       value={registerForm.phone}
                       onChange={handleRegisterChange}
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 text-gray-900 focus:outline-none transition duration-200"
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="https://example.com/image"
                     />
                   </div>
                 </div>
@@ -366,6 +376,37 @@ const handleRegisterSubmit = async (e) => {
                   </div>
                   {registerErrors.confirmPassword && <p className="mt-1 text-sm text-red-600">{registerErrors.confirmPassword}</p>}
                 </div>
+                <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+  <div className="flex items-center space-x-6">
+    <label className="inline-flex items-center">
+      <input
+        type="radio"
+        name="role"
+        value="student"
+        onChange={handleRegisterChange}
+        checked={registerForm.role === "student"}
+        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+      />
+      <span className="ml-2 text-sm text-gray-700">Student</span>
+    </label>
+    
+    <label className="inline-flex items-center">
+      <input
+        type="radio"
+        name="role"
+        value="instructor"
+        onChange={handleRegisterChange}
+        checked={registerForm.role === "instructor"}
+        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+      />
+      <span className="ml-2 text-sm text-gray-700">Instructor</span>
+    </label>
+  </div>
+  {registerErrors.role && (
+    <p className="mt-1 text-sm text-red-600">{registerErrors.role}</p>
+  )}
+</div>
 
                 <div className="pt-2">
                   <button

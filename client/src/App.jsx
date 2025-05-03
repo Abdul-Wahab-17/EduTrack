@@ -6,7 +6,6 @@ import Dashboard from './pages/dashboard';
 import About from './pages/About';
 import Navbar from './components/navbar';
 import Footer from './components/footer';
-import Register from './pages/register';
 import CourseList from './pages/CourseList';
 import CreateCourse from './pages/CreateCourse';
 import CourseDetail from './pages/CourseDetail';
@@ -25,7 +24,6 @@ function AppRoutes() {
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/courses" element={<CourseList />} />
         <Route path="/courses/create" element={<CreateCourse />} />
         <Route path="/courses/:id" element={<CourseDetail />} />

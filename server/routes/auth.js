@@ -110,7 +110,22 @@ router.post('/register', (req, res, next) => {
                 const user = { id: results.insertId, username: username, role: role };
                 req.logIn(user, function(err) {
                     if (err) { return next(err); }
-                    res.status(200).send('It workedddddddd');
+                    const user = {  username: username, role: role };
+                   
+                    if(role === `student`){
+                        db.query( `insert into students (user_id , full_name , status) values ( ${results.insertId} , ? , ?)` , [username, `active`] , (err , result)=>{
+                            if (err){ return res.status(500).send(`db error`)}
+                          return   res.status(200).json( {user:user});
+                        })
+                    
+                    }
+                    else if(role === `instructor`){
+                        db.query( `insert into instructors (user_id , full_name ) values ( ${results.insertId} , ? )` , [username] , (err , result)=>{
+                            if (err){ return res.status(500).send(`db error`)}
+                          return   res.status(200).json( {user:user});
+                        })
+                    
+                    }
                 });
             });
         });

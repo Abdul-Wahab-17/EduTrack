@@ -1,4 +1,8 @@
+import { useNavigate } from "react-router-dom"
+
 export default function HeroSection() {
+
+  const navigate = useNavigate();
     return (
       <div className="relative bg-gray-900">
               
@@ -21,7 +25,7 @@ export default function HeroSection() {
           </p>
           <div className="mt-10">
             <a
-              href="#"
+              onClick={()=>{ navigate(`/courses`)}}
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 transition duration-300"
             >
               Explore Courses

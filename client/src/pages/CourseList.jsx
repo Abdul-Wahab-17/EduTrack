@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function CourseList() {
   const { user } = useAuth();
   const role = user?.role;
+  const navigate = useNavigate();
 
   const [courses, setCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
@@ -59,10 +60,10 @@ function CourseList() {
     }
   };
 
-  if (!user) return <div className="text-center text-lg mt-10">Loading user...</div>;
+  if (!user) navigate(`/about`);
   if (isLoading) return <div className="text-center text-lg mt-10">Loading courses...</div>;
   if (error) return <div className="text-center text-red-500 text-lg mt-10">{error}</div>;
-
+  
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <h1 className="text-4xl font-bold text-gray-800 mb-8">Courses</h1>
@@ -81,45 +82,137 @@ function CourseList() {
       {role === 'student' && (
         <>
           <section className="mb-12">
-            <h2 className="text-2xl font-semibold text-gray-700 mb-4">Enrolled Courses</h2>
-            {enrolledCourses.length === 0 ? (
-              <p className="text-gray-600">You are not enrolled in any courses.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {enrolledCourses.map(course => (
-                  <div key={course.id} className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition">
-                    <h3 className="text-xl font-semibold mb-2 text-gray-800">{course.title}</h3>
-                    <Link
-                      to={`/courses/${course.id}`}
-                      className="inline-block mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                    >
-                      Continue Learning
-                    </Link>
+          <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-6">My Courses</h2>
+          {enrolledCourses.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">
+                You haven't enrolled in any courses yet.
+              </p>
+              <a
+                href="/courses"
+                className="text-blue-600 hover:underline mt-2 inline-block"
+              >
+                Browse available courses
+              </a>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {enrolledCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="h-40 bg-gray-200">
+                    <img
+                      src={course.image_url}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1">{course.title}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Instructor: {course.instructor_name}
+                    </p>
+
+                    {/* Progress bar */}
+                    <div className="mb-2">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Progress</span>
+                        <span>{course.progress}%</span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full">
+                        <div
+                          className={`h-full rounded-full ${
+                            course.status === "completed"
+                              ? "bg-green-500"
+                              : "bg-blue-500"
+                          }`}
+                          style={{ width: `${course.progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-4">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          course.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {course.status === "completed"
+                          ? "Completed"
+                          : "In Progress"}
+                      </span>
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded"
+                        onClick={() => navigate(`/courses/${course.id}`)}
+                      >
+                        Continue
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-700 mb-4">Available Courses</h2>
-            {unenrolledCourses.length === 0 ? (
-              <p className="text-gray-600">No more courses available for enrollment.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {unenrolledCourses.map(course => (
-                  <div key={course.id} className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition">
-                    <h3 className="text-xl font-semibold mb-2 text-gray-800">{course.title}</h3>
-                    <button
-                      onClick={() => handleEnroll(course.id)}
-                      className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                    >
-                      Enroll
-                    </button>
+          <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-6">My Courses</h2>
+          {unenrolledCourses.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">
+                You haven't enrolled in any courses yet.
+              </p>
+              <a
+                href="/courses"
+                className="text-blue-600 hover:underline mt-2 inline-block"
+              >
+                Browse available courses
+              </a>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {unenrolledCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="h-40 bg-gray-200">
+                    <img
+                      src={course.image_url}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1">{course.title}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Instructor: {course.instructor_name}
+                    </p>
+
+                   
+
+                    <div className="flex items-center justify-between mt-4">
+                     
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded"
+                        onClick={handleEnroll}
+                      >
+                        Enroll
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
           </section>
         </>
       )}
