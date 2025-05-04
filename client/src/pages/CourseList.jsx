@@ -60,9 +60,62 @@ function CourseList() {
     }
   };
 
-  if (!user) navigate(`/about`);
+ // if (!user) navigate(`/about`);
   if (isLoading) return <div className="text-center text-lg mt-10">Loading courses...</div>;
   if (error) return <div className="text-center text-red-500 text-lg mt-10">{error}</div>;
+  if (!user){
+    return (
+      <>
+     
+        
+          <section className="mb-12">
+          <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-6">All Courses  </h2>
+           
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courses.map((course) => (
+                <div
+                  key={course.id}
+                  className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="h-40 bg-gray-200">
+                    <img
+                      src={course.image_url}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1">{course.title}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Instructor: {course.instructor_name}
+                    </p>
+
+                    
+
+                    <div className="flex items-center justify-between mt-4">
+                     
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded"
+                        onClick={() => navigate(`/login`)}
+                      >
+                        Enroll
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          
+        </div>
+          </section>
+          );
+        
+      
+    </>
+    
+    );
+  }
   
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">

@@ -22,8 +22,8 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Login />} />
         <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/logout" element={<Logout />} />
+        <Route path="/login" element={!isAuthenticated ? <Login /> : <Logout />} />
+        <Route path="/logout"  element={isAuthenticated ? <Logout /> : <Login />}  />
         <Route path="/courses" element={<CourseList />} />
         <Route path="/courses/create" element={<CreateCourse />} />
         <Route path="/courses/:id" element={<CourseDetail />} />

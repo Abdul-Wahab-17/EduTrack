@@ -33,7 +33,7 @@ router.get(`/enrolledCourses` , ensureAuthenticated , ensureStudent , (req , res
 router.get('/unenrolledCourses' ,ensureAuthenticated , ensureStudent , (req,res)=>{
     var id = req.user.id;
     console.log(id);
-    db.query(`select c.course_id as id ,  c.title from courses c where c.course_id not in (select f.course_id from enrolledCourses f where f.student_id = (select s.student_id from students s where s.user_id = ?) )`,[id] , (err , result)=>{
+    db.query(`select c.course_id as id ,  c.title from courses c where c.course_id not in (select f.course_id from enrolledCourses f where f.student_id = (select s.student_id from students s where s.user_id = ?) ) and c.status = 'published'`,[id] , (err , result)=>{
 
         res.json(result);
     })
@@ -78,13 +78,14 @@ router.get('/course/:id', ensureAuthenticated, (req, res) => {
     );
   });
 
-router.get('/allCourses', ensureAuthenticated, (req, res) => {
+router.get('/allCourses', (req, res) => {
     db.query(
-      `SELECT c.course_id as id, c.title, c.description, c.price, c.status, 
-      i.instructor_id, u.username as instructor_name 
+      `SELECT c.course_id as id, c.title, c.description, c.price, c.status,c.image_url ,
+      u.username as instructor_name
       FROM courses c
-      JOIN instructors i ON c.instructor_id = i.instructor_id
-      JOIN users u ON i.user_id = u.user_id
+      join instructors i on c.instructor_id = i.instructor_id
+      join users u on u.user_id = i.user_id
+
       WHERE c.status = 'published'`,
       (err, result) => {
         if (err) {
