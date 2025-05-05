@@ -2,7 +2,8 @@ var express =require(`express`);
 var router = express.Router();
 var db = require(`../db`);
 
-const {ensureAuthenticated , ensureInstructor , ensureStudent } = require(`../middleware/authMiddleware`);
+const {ensureAuthenticated , ensureInstructor , ensureStudent, ensureOwnership } = require(`../middleware/authMiddleware`);
+const checkStudents = require("../middleware/courseMiddleware");
 
 router.get(`/enrolledCourses` , ensureAuthenticated , ensureStudent , (req , res)=>{
     var id = req.user.id;
@@ -226,5 +227,16 @@ router.post('/enroll', ensureAuthenticated, ensureStudent, (req, res) => {
       }
     );
   });
+
+
+router.post( `/delete` , ensureAuthenticated , ensureInstructor , ensureOwnership , checkStudents,(req,res)=>{
+  var {courseId} = req.body;
+  db.query(`delete from courses where course_id = ?` , [courseId] , (err,result)=>{
+    if (err){
+      return res.status(500).send(`db error`);
+    } 
+    return res.status(200).send(`course deleted successfully`); 
+  })
+})
   
 module.exports = router;

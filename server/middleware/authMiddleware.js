@@ -23,9 +23,11 @@ function ensureStudent(req , res , next){
 
 function ensureOwnership( req , res , next){
 
- console.log(`hereeeeeee`)
         var userId = req.user.id;
-        var courseId = req.params.courseId;
+        var courseId = req.params.courseId || req.body.courseId;
+        console.log(courseId)
+        console.log(req.params.courseId)
+        console.log(req.body.courseId)
 
         db.query(`select instructor_id from instructors where user_id = ?` , [userId] , (err, result)=>{
             if (err){ return res.status(500).send(`db error ` + err)}
