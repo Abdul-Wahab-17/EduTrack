@@ -15,6 +15,7 @@ var dataRouter = require(`./routes/data`);
 var messageRouter = require(`./routes/messages`);
 var courseRouter = require(`./routes/courses`);
 var contentRouter = require(`./routes/content`);
+var quizRouter = require(`./routes/quizzes`);
 
 
 var app = express();
@@ -34,9 +35,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:3000", 
-  credentials: true, 
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], 
+  origin: "http://localhost:3000",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 }));
 
 
@@ -53,10 +54,11 @@ app.use(`/data` , dataRouter);
 app.use('/api', messageRouter);
 app.use(`/courses` , courseRouter);
 app.use(`/content` , contentRouter);
+app.use(`/quizzes` , quizRouter);
 
 
 app.use(function(req, res, next) {
-  next(createError(404, 'Page Not Found')); 
+  next(createError(404, 'Page Not Found'));
 });
 
 // Error handler

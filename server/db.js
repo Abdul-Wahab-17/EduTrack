@@ -3,11 +3,11 @@ const mysql = require('mysql');
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'letmein', 
-    database: 'lms'
+    password: 'letmein',
+    database: 'test_lms'
 });
 
-// Connect to MySQL
+// Connect to MySQLz
 connection.connect((err) => {
     if (err) {
         console.error('❌ Database connection failed:', err.stack);

@@ -11,6 +11,8 @@ import CreateCourse from './pages/CreateCourse';
 import CourseDetail from './pages/CourseDetail';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ViewContent from './pages/viewContent';
+import UploadFile from './pages/UploadFile';
+import EditCourseForm from './pages/editCourse';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -26,8 +28,11 @@ function AppRoutes() {
         <Route path="/logout"  element={isAuthenticated ? <Logout /> : <Login />}  />
         <Route path="/courses" element={<CourseList />} />
         <Route path="/courses/create" element={<CreateCourse />} />
+        <Route path="/courses/:courseId/content/create" element={<UploadFile />} />
         <Route path="/courses/:id" element={<CourseDetail />} />
         <Route path="courses/:courseId/content/:contentId" element={<ViewContent />}/>
+        <Route path="/course/:courseId/quiz"/>
+        <Route path="/courses/:courseId/edit" element={<EditCourseForm />}/>
 
       </Routes>
       <Footer />

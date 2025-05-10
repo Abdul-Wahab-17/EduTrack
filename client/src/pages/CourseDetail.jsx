@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-
-
-
+import {useAuth} from '../context/AuthContext';
 
 function Success({setSucMessage , setContent}){
   const {id} = useParams();
@@ -13,13 +11,13 @@ function Success({setSucMessage , setContent}){
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
         <p className="text-xl mb-4">Content deleted successfully.</p>
         <div className="flex justify-end">
-          <button 
+          <button
             onClick={ async ()=>{ setContent(  (await axios.get(`http://localhost:8080/content/${id}}` , {withCredentials:true})).data ) ;setSucMessage(false)}}
             className="bg-red-500 text-white px-4 py-2 rounded mr-2"
           >
             OK
           </button>
-         
+
         </div>
       </div>
     </div>
@@ -42,14 +40,14 @@ function Delete({ setDelMessage, setSucMessage , courseId , contentId}) {
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
         <p className="text-xl mb-4">Are you sure you want to delete?</p>
         <div className="flex justify-end">
-          <button 
+          <button
             onClick={handleConfirm}
             className="bg-red-500 text-white px-4 py-2 rounded mr-2"
           >
             Yes
           </button>
-          <button 
-            onClick={handleCancel} 
+          <button
+            onClick={handleCancel}
             className="bg-gray-500 text-white px-4 py-2 rounded"
           >
             No
@@ -60,7 +58,9 @@ function Delete({ setDelMessage, setSucMessage , courseId , contentId}) {
   );
 }
 
-function CourseDetail({ role }) {
+function CourseDetail( ) {
+  const {user} = useAuth();
+  const role = user?.role;
   const { id } = useParams();
   const [course, setCourse] = useState(null);
   const [content, setContent] = useState([]);
@@ -80,15 +80,15 @@ function CourseDetail({ role }) {
           axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true }),
           axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
         ]);
-        
+
         setCourse(courseRes.data);
         setContent(contentRes.data);
-        
+
         // If student, get enrollment progress
         if (role === 'student') {
           try {
-            const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, { 
-              withCredentials: true 
+            const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, {
+              withCredentials: true
             });
             const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
             if (enrollment && enrollment.progress) {
@@ -137,7 +137,6 @@ function CourseDetail({ role }) {
     });
   };
 
-  
 
   if (isLoading) {
     return <div className="text-center mt-8">Loading course...</div>;
@@ -158,7 +157,7 @@ function CourseDetail({ role }) {
           &larr; Back to Courses
         </Link>
       </div>
-      
+
       <div className="bg-white shadow-md rounded-lg p-6 mb-8">
         <div className="flex justify-between items-start">
           <div>
@@ -168,14 +167,14 @@ function CourseDetail({ role }) {
               <p className="text-gray-800 mb-4">Duration: {course.duration_weeks} weeks</p>
             )}
             { role === 'instructor'  && ( <p className="text-gray-800 mb-4" >Price: {course.price}$</p>)}
-           
+
             { role === 'instructor'  && ( <p className="text-gray-800 mb-4" >Creation Date: {new Date(course.created_at).toLocaleDateString('en-CA')} </p>)}
             <p className="text-gray-800 mb-6">{course.description}</p>
-            
+
           </div>
-          
+
           {role === 'instructor' && (
-            <Link 
+            <Link
               to={`/courses/${id}/edit`}
               className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
             >
@@ -183,13 +182,13 @@ function CourseDetail({ role }) {
             </Link>
           )}
         </div>
-        
+
         {role === 'student' && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold mb-2">Your Progress</h3>
             <div className="w-full bg-gray-200 rounded-full h-4">
-              <div 
-                className="bg-green-500 h-4 rounded-full" 
+              <div
+                className="bg-green-500 h-4 rounded-full"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -197,28 +196,29 @@ function CourseDetail({ role }) {
           </div>
         )}
       </div>
-      
+
       {role === 'instructor' && (
         <div className="mb-8">
-          <Link 
+          <Link
             to={`/courses/${id}/content/create`}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
           >
             Add Course Content
           </Link>
+          <Link to={`/course/${id}/quiz`}  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Quiz Management</Link>
         </div>
       )}
-      
+
       <div className="bg-white shadow-md rounded-lg p-6">
         <h2 className="text-2xl font-semibold mb-6">Course Content</h2>
-        
+
         {content.length === 0 ? (
           <p>No content available for this course yet.</p>
         ) : (
           <div className="space-y-4">
             {content.map((item) => (
-              <div 
-                key={item.content_id} 
+              <div
+                key={item.content_id}
                 className="border-b pb-4 last:border-b-0"
               >
                 <div className="flex justify-between items-start">
@@ -257,33 +257,33 @@ function CourseDetail({ role }) {
                       </p>
                     )}
                   </div>
-                  
+
                   <div>
-                    <Link 
+                    <Link
                       to={`/courses/${id}/content/${item.content_id}`}
                       className="text-blue-500 hover:underline"
                     >
                       View
                     </Link>
-                    
+
                     {role === 'instructor' && (
-                      <button 
+                      <button
                         onClick={() =>{ setDelMessage(true)}}
                         className="ml-4 text-yellow-500 hover:underline"
                       >
                         Delete
                       </button>
-                     
+
                     )}
                   </div>
-                  <div> 
+                  <div>
                     {delMessage && ( <Delete  setDelMessage={setDelMessage} setSucMessage={setSucMessage} courseId={id} contentId={item.content_id} />)}
                   </div>
                   <div>
                     {sucMessage && (<Success setSucMessage={setSucMessage} setContent={setContent}/>)}
                   </div>
                 </div>
-                
+
                 {role === 'student' && (
                   <button
                     onClick={() => handleContentComplete()}

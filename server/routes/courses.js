@@ -7,26 +7,26 @@ const checkStudents = require("../middleware/courseMiddleware");
 
 router.get(`/enrolledCourses` , ensureAuthenticated , ensureStudent , (req , res)=>{
     var id = req.user.id;
-    var query = `SELECT 
+    var query = `SELECT
      c.course_id AS id,
      c.title AS title,
      i.instructor_id AS instructor_name,
      c.image_url,
      ec.status,
      ec.progress
-   FROM 
+   FROM
      courses c
      JOIN instructors i ON c.instructor_id = i.instructor_id
      JOIN enrolledCourses ec ON c.course_id = ec.course_id
      JOIN students s ON s.student_id = ec.student_id
     where
     s.user_id = ?`;
-   
+
     db.query(query , [id] , (err,result)=>{
       if (err){ return res.status(500).send(`db error`)}
 
-        
-        res.json(result);
+
+        res.status(200).json(result);
     })
 })
 
@@ -36,29 +36,52 @@ router.get('/unenrolledCourses' ,ensureAuthenticated , ensureStudent , (req,res)
     console.log(id);
     db.query(`select c.course_id as id ,  c.title from courses c where c.course_id not in (select f.course_id from enrolledCourses f where f.student_id = (select s.student_id from students s where s.user_id = ?) ) and c.status = 'published'`,[id] , (err , result)=>{
 
-        res.json(result);
+      res.status(200).json(result);
     })
 })
 
-router.get(`/` , ensureAuthenticated , ensureInstructor ,  (req , res) =>{
-    var user = req.user;
-    console.log(user);
-    var id = user.id;
-    console.log(id);
-    db.query(`select c.course_id as id,c.image_url ,  c.title as title , c.duration_weeks as duration , c.description , c.price , c.status from courses c , instructors i where i.instructor_id = c.instructor_id and i.instructor_id = (select instructor_id from instructors j  where j.user_id = ? ) `, [id] , (err,result)=>{
-     if (err){return res.status(500).send(`database error`)}
-        res.json(result);
-    })
- 
-})
+router.get(`/`, ensureAuthenticated, ensureInstructor, (req, res) => {
+  const id = req.user.id;
+  const courseId = req.body.courseId;
 
-router.get('/course/:id', ensureAuthenticated, (req, res) => {
-    const courseId = req.params.id;
-    
+  // Use explicit JOINs for better readability
+  const query = `
+    SELECT
+      c.course_id AS id,
+      c.image_url,
+      c.title,
+      c.duration_weeks,
+      c.description,
+      c.price,
+      c.status,
+      c.category
+    FROM
+      courses c
+    JOIN
+      instructors i ON i.instructor_id = c.instructor_id
+    WHERE
+      i.instructor_id = (SELECT instructor_id FROM instructors j WHERE j.user_id = ? and course_id = ?
+  `;
+
+  db.query(query, [id,courseId], (err, result) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).send("Database error");
+    }
+    res.status(200).json(result);
+  });
+});
+
+
+
+
+router.get('/course/:courseId', ensureAuthenticated , ensureInstructor , ensureOwnership, (req, res) => {
+    const courseId = req.params.courseId;
+
     db.query(
-      `SELECT c.course_id as id, c.title, c.description, c.price, c.duration_weeks, 
-      c.status, c.created_at, i.instructor_id, u.username as instructor_name, 
-      i.bio as instructor_bio, i.expertise
+      `SELECT c.course_id as id, c.title, c.description, c.price, c.duration_weeks,
+      c.status, c.created_at, i.instructor_id, u.username as instructor_name,
+      u.bio as instructor_bio
       FROM courses c
       JOIN instructors i ON c.instructor_id = i.instructor_id
       JOIN users u ON i.user_id = u.user_id
@@ -69,12 +92,12 @@ router.get('/course/:id', ensureAuthenticated, (req, res) => {
           console.error('Error fetching course details:', err);
           return res.status(500).json({ error: 'Database error' });
         }
-        
+
         if (result.length === 0) {
           return res.status(404).json({ error: 'Course not found' });
         }
-        
-        res.json(result[0]);
+
+        res.status(200).json(result[0]);
       }
     );
   });
@@ -93,29 +116,29 @@ router.get('/allCourses', (req, res) => {
           console.error('Error fetching courses:', err);
           return res.status(500).json({ error: 'Database error' });
         }
-        res.json(result);
+        res.status(200).json(result);
       }
     );
   });
-  
+
   router.post('/createcourse', ensureAuthenticated, ensureInstructor, (req, res) => {
     const userId = req.user.id;
-  
+
     // Query to get the instructor_id from the user_id
     const instructorQuery = 'SELECT instructor_id FROM Instructors WHERE user_id = ?';
-  
+
     db.query(instructorQuery, [userId], (err, results) => {
       if (err) {
         console.error('Error fetching instructor ID:', err);
         return res.status(500).json({ error: 'Failed to identify instructor' });
       }
-  
+
       if (results.length === 0) {
         return res.status(403).json({ error: 'User is not a valid instructor' });
       }
-  
+
       const instructorId = results[0].instructor_id;
-  
+
       const {
         title,
         description,
@@ -124,12 +147,12 @@ router.get('/allCourses', (req, res) => {
         status = 'draft',  // default to draft if not provided
         image_url = null  // optional
       } = req.body;
-  
+
       // Validation
       if (!title || !description) {
         return res.status(400).json({ error: 'Title and Description are required fields' });
       }
-  
+
       // Prepare the insert query
       const insertQuery = `
         INSERT INTO Courses (
@@ -140,10 +163,10 @@ router.get('/allCourses', (req, res) => {
           duration_weeks,
           status,
           image_url
-        ) 
+        )
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
-  
+
       // Values for the insert query
       const values = [
         instructorId,
@@ -154,14 +177,14 @@ router.get('/allCourses', (req, res) => {
         status,
         image_url || null
       ];
-  
+
       // Insert data into the database
       db.query(insertQuery, values, (insertErr, result) => {
         if (insertErr) {
           console.error('Error inserting course:', insertErr);
           return res.status(500).json({ error: 'Failed to create course' });
         }
-  
+
         // Return a success response with the course ID
         res.status(201).json({
           message: 'Course created successfully',
@@ -170,16 +193,58 @@ router.get('/allCourses', (req, res) => {
       });
     });
   });
-  
-        
 
 
-           
+router.put('/:courseId/edit', ensureAuthenticated , ensureInstructor , ensureOwnership , async (req, res) => {
+  const { courseId } = req.params;
+  const {
+    title,
+    description,
+    price,
+    duration_weeks,
+    status,
+    image_url,
+    category,
+  } = req.body;
+
+  try {
+    const updateQuery = `
+      UPDATE courses
+      SET
+        title = ?,
+        description = ?,
+        price = ?,
+        duration_weeks = ?,
+        status = ?,
+        image_url = ?,
+        category = ?,
+        updated_at = NOW()
+      WHERE course_id = ?
+    `;
+    await db.query(updateQuery, [
+      title,
+      description,
+      price,
+      duration_weeks,
+      status,
+      image_url,
+      category,
+      courseId,
+    ]);
+
+    res.json({ message: 'Course updated successfully' });
+  } catch (error) {
+    console.error('Error updating course:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 router.post('/enroll', ensureAuthenticated, ensureStudent, (req, res) => {
     const { course_id } = req.body;
     const userId = req.user.id;
-    console.log(userId)
-    
+
+
     // Get the student_id
     db.query(
       'SELECT student_id FROM students WHERE user_id = ?',
@@ -189,9 +254,9 @@ router.post('/enroll', ensureAuthenticated, ensureStudent, (req, res) => {
           console.error('Error finding student:', err);
           return res.status(400).json({ error: 'Invalid student account' });
         }
-        
+
         const studentId = result[0].student_id;
-        
+
         // Check if already enrolled
         db.query(
           'SELECT enrollment_id FROM enrolledcourses WHERE student_id = ? AND course_id = ?',
@@ -201,11 +266,11 @@ router.post('/enroll', ensureAuthenticated, ensureStudent, (req, res) => {
               console.error('Error checking enrollment:', err);
               return res.status(500).json({ error: 'Database error' });
             }
-            
+
             if (result.length > 0) {
               return res.status(400).json({ error: 'Already enrolled in this course' });
             }
-            
+
             // Create the enrollment
             db.query(
               'INSERT INTO enrolledcourses (student_id, course_id) VALUES (?, ?)',
@@ -215,10 +280,10 @@ router.post('/enroll', ensureAuthenticated, ensureStudent, (req, res) => {
                   console.error('Error enrolling in course:', err);
                   return res.status(500).json({ error: 'Database error' });
                 }
-                
-                res.status(201).json({ 
+
+                res.status(201).json({
                   id: result.insertId,
-                  message: 'Successfully enrolled in course' 
+                  message: 'Successfully enrolled in course'
                 });
               }
             );
@@ -234,9 +299,9 @@ router.post( `/delete` , ensureAuthenticated , ensureInstructor , ensureOwnershi
   db.query(`delete from courses where course_id = ?` , [courseId] , (err,result)=>{
     if (err){
       return res.status(500).send(`db error`);
-    } 
-    return res.status(200).send(`course deleted successfully`); 
+    }
+    return res.status(200).send(`course deleted successfully`);
   })
 })
-  
+
 module.exports = router;

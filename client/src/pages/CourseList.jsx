@@ -59,19 +59,18 @@ function CourseList() {
       setError('Failed to enroll in course. Please try again later.');
     }
   };
-
  // if (!user) navigate(`/about`);
   if (isLoading) return <div className="text-center text-lg mt-10">Loading courses...</div>;
   if (error) return <div className="text-center text-red-500 text-lg mt-10">{error}</div>;
   if (!user){
     return (
       <>
-     
-        
+
+
           <section className="mb-12">
           <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-6">All Courses  </h2>
-           
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course) => (
                 <div
@@ -91,10 +90,10 @@ function CourseList() {
                       Instructor: {course.instructor_name}
                     </p>
 
-                    
+
 
                     <div className="flex items-center justify-between mt-4">
-                     
+
                       <button
                         className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded"
                         onClick={() => navigate(`/login`)}
@@ -106,17 +105,17 @@ function CourseList() {
                 </div>
               ))}
             </div>
-          
+
         </div>
           </section>
           );
-        
-      
+
+
     </>
-    
+
     );
   }
-  
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <h1 className="text-4xl font-bold text-gray-800 mb-8">Courses</h1>
@@ -216,7 +215,7 @@ function CourseList() {
 
           <section>
           <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-6">My Courses</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Recommended Courses</h2>
           {unenrolledCourses.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600">
@@ -249,10 +248,10 @@ function CourseList() {
                       Instructor: {course.instructor_name}
                     </p>
 
-                   
+
 
                     <div className="flex items-center justify-between mt-4">
-                     
+
                       <button
                         className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded"
                         onClick={handleEnroll}

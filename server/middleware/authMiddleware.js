@@ -25,14 +25,11 @@ function ensureOwnership( req , res , next){
 
         var userId = req.user.id;
         var courseId = req.params.courseId || req.body.courseId;
-        console.log(courseId)
-        console.log(req.params.courseId)
-        console.log(req.body.courseId)
 
         db.query(`select instructor_id from instructors where user_id = ?` , [userId] , (err, result)=>{
             if (err){ return res.status(500).send(`db error ` + err)}
             const instructorid = result[0].instructor_id;
-    
+
             db.query(`select instructor_id from courses where course_id = ? ` ,[courseId] , (err,result)=>{
                 if (err) { return res.status(500).send(err)}
                 if (result.length === 0){
