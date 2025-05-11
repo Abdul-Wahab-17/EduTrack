@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; 
+import { useAuth } from "../context/AuthContext";
 import StudentDashboard from "../components/student";
 import Instructor from "../components/instructor";
 
@@ -9,7 +9,6 @@ import Instructor from "../components/instructor";
 function Dashboard() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const username = user?.username;
   const role = user?.role;
 
   // Redirect if not authenticated
@@ -43,14 +42,10 @@ function Dashboard() {
     case "instructor":
       content = <Instructor />;
       break;
-    case "admin":
-      content = <Admin />;
-      break;
     default:
       content = null;
   }
 
-  console.log("Username:", username, "Role:", role);
 
   return <>{content}</>;
 }

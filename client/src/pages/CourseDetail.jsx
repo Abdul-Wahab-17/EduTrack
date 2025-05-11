@@ -70,44 +70,56 @@ function CourseDetail( ) {
   const [delMessage , setDelMessage] = useState(false);
   const [sucMessage , setSucMessage] = useState(false);
 
+useEffect(() => {
+  const fetchCourseData = async () => {
+    setIsLoading(true);
 
+    // Initialize the variables
+    let courseRes = null;
+    let contentRes = null;
 
-  useEffect(() => {
-    const fetchCourseData = async () => {
-      setIsLoading(true);
-      try {
-        const [courseRes, contentRes] = await Promise.all([
-          axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true }),
-          axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
-        ]);
+    try {
+      if (role === 'instructor') {
+        // Fetch course and content data for instructor
+        courseRes = await axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true });
+        contentRes = await axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true });
 
+      } else if (role === 'student') {
+        // Fetch course and content data for student
+        courseRes = await axios.get(`http://localhost:8080/courses/enrolled/${id}`, { withCredentials: true });
+        contentRes = await axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true });
+
+        // Fetch the progress only for students
+        try {
+          const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, {
+            withCredentials: true
+          });
+
+          const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
+          if (enrollment && enrollment.progress) {
+            setProgress(enrollment.progress);
+          }
+        } catch (err) {
+          console.error('Error fetching enrollment:', err);
+        }
+      }
+
+      // Only set state if the responses are not null
+      if (courseRes && contentRes) {
         setCourse(courseRes.data);
         setContent(contentRes.data);
-
-        // If student, get enrollment progress
-        if (role === 'student') {
-          try {
-            const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, {
-              withCredentials: true
-            });
-            const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
-            if (enrollment && enrollment.progress) {
-              setProgress(enrollment.progress);
-            }
-          } catch (err) {
-            console.error('Error fetching enrollment:', err);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching course data:', err);
-        setError('Failed to load course. Please try again later.');
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    fetchCourseData();
-  }, [id, role]);
+    } catch (err) {
+      console.error('Error fetching course data:', err);
+      setError('Failed to load course. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchCourseData();
+}, [id, role]);
 
   const updateProgress = async (newProgress) => {
     try {
@@ -208,6 +220,16 @@ function CourseDetail( ) {
           <Link to={`/course/${id}/quiz`}  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Quiz Management</Link>
         </div>
       )}
+{role === 'student' && (
+  <div className="mb-8">
+    <Link
+      to={`/course/${id}/quizzes`}
+      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+    >
+      View Quizzes
+    </Link>
+  </div>
+)}
 
       <div className="bg-white shadow-md rounded-lg p-6">
         <h2 className="text-2xl font-semibold mb-6">Course Content</h2>

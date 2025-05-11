@@ -41,7 +41,6 @@ passport.use(new localStrategy(function verify(username, password, cb) {
 }));
 
 passport.serializeUser(function(user, cb) {
-    console.log('Serialized user:', user);  // Debugging the user object
     process.nextTick(function() {
         cb(null, { id: user.user_id, username: user.username, role: user.user_type });
     });

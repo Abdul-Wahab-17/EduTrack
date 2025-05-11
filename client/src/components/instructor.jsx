@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { 
-  BookOpenIcon, 
-  UserGroupIcon, 
-  ChartBarIcon, 
-  CurrencyDollarIcon, 
+import {
+  BookOpenIcon,
+  UserGroupIcon,
+  ChartBarIcon,
+  CurrencyDollarIcon,
   ArrowTrendingUpIcon,
   PencilIcon,
   StarIcon,
@@ -16,61 +16,71 @@ import CreateCourseForm from '../components/CreateCourseForm';
 
 const InstructorDashboard = () => {
   const { user } = useAuth(); // Assuming `AuthContext` provides user data
-  const [courses, setCourses] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [courseToEdit, setCourseToEdit] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editProfile, setEditProfile] = useState(false);
 
   const navigate = useNavigate();
-  
-  
+
+ const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch courses function
+  const fetchCourses = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/courses/ownedCourses', { withCredentials: true });
+      console.log('API Response Data:', response.data); // Log API response for debugging
+      setCourses(response.data); // Store fetched courses in the state
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setError('Failed to fetch courses. Please try again later.');
+    } finally {
+      setLoading(false); // Set loading to false after the request finishes
+    }
+  };
+
+  // Call fetchCourses when the component mounts
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await axios.get('http://localhost:8080/courses', { withCredentials: true });
-        setCourses(response.data);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-      }
-    };
+    fetchCourses(); // Fetch courses on component mount
+  }, []); // Empty dependency array ensures this only runs once
 
-    fetchCourses();
-  }, []);
-
+  if (loading) return <div>Loading...</div>; // Show loading while fetching
+  if (error) return <div>{error}</div>;
   // const stats = [
-  //   { 
-  //     name: 'Total Students', 
-  //     value: courses.reduce((sum, course) => sum + course.students, 0).toLocaleString(), 
-  //     icon: UserGroupIcon, 
-  //     change: '+12%', 
-  //     changeType: 'positive' 
+  //   {
+  //     name: 'Total Students',
+  //     value: courses.reduce((sum, course) => sum + course.students, 0).toLocaleString(),
+  //     icon: UserGroupIcon,
+  //     change: '+12%',
+  //     changeType: 'positive'
   //   },
-  //   { 
-  //     name: 'Total Revenue', 
+  //   {
+  //     name: 'Total Revenue',
   //     value: `$${courses.reduce((sum, course) => {
   //       const revenue = parseFloat(course.revenue.replace(/[^0-9.]/g, ''));
   //       return sum + revenue;
-  //     }, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 
-  //     icon: CurrencyDollarIcon, 
-  //     change: '+24%', 
-  //     changeType: 'positive' 
+  //     }, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+  //     icon: CurrencyDollarIcon,
+  //     change: '+24%',
+  //     changeType: 'positive'
   //   },
-  //   { 
-  //     name: 'Course Rating', 
-  //     value: courses.length > 0 
-  //       ? `${(courses.reduce((sum, course) => sum + course.rating, 0) / courses.length).toFixed(1)}/5` 
-  //       : '0/5', 
-  //     icon: ChartBarIcon, 
-  //     change: '+0.2', 
-  //     changeType: 'positive' 
+  //   {
+  //     name: 'Course Rating',
+  //     value: courses.length > 0
+  //       ? `${(courses.reduce((sum, course) => sum + course.rating, 0) / courses.length).toFixed(1)}/5`
+  //       : '0/5',
+  //     icon: ChartBarIcon,
+  //     change: '+0.2',
+  //     changeType: 'positive'
   //   },
-  //   { 
-  //     name: 'Courses Published', 
-  //     value: courses.length, 
-  //     icon: BookOpenIcon, 
-  //     change: `+${Math.max(0, courses.length - 3)}`, 
-  //     changeType: 'positive' 
+  //   {
+  //     name: 'Courses Published',
+  //     value: courses.length,
+  //     icon: BookOpenIcon,
+  //     change: `+${Math.max(0, courses.length - 3)}`,
+  //     changeType: 'positive'
   //   },
   // ];
 
@@ -160,8 +170,8 @@ const InstructorDashboard = () => {
 
   const renderStars = (rating) => {
     return Array(5).fill(0).map((_, i) => (
-      <StarIcon 
-        key={i} 
+      <StarIcon
+        key={i}
         className={`h-5 w-5 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
       />
     ));
@@ -170,8 +180,8 @@ const InstructorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-    
-      
+
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Banner */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-xl shadow-lg overflow-hidden mb-8">
@@ -183,7 +193,7 @@ const InstructorDashboard = () => {
                   src={user.profilePic}
                   alt="Instructor profile"
                 />
-                <button 
+                <button
                   onClick={() => setEditProfile(true)}
                   className="absolute bottom-0 right-0 bg-white p-1.5 rounded-full shadow-md hover:bg-gray-100"
                 >
@@ -196,13 +206,13 @@ const InstructorDashboard = () => {
                   {user.bio}
                 </p>
                 <div className="mt-4 flex space-x-4">
-                  <button 
+                  <button
                     onClick={handleNewCourse}
                     className="bg-white text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-lg font-medium shadow-sm transition duration-200"
                   >
                     Create New Course
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActiveTab('analytics')}
                     className="text-white border border-white hover:bg-purple-700 px-4 py-2 rounded-lg font-medium shadow-sm transition duration-200"
                   >
@@ -272,35 +282,34 @@ const InstructorDashboard = () => {
             </div> */}
 
             {/* Your Courses */}
-            <div className="mb-12">
+         <div className="mb-12">
   <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Courses</h2>
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {courses.map((course) => (
-      
-      <div key={course.course_id} className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="h-48 w-full overflow-hidden">
-          <img 
-            src={course.image_url || 'https://via.placeholder.com/300x200'} 
+          <img
+            src={course.image_url || 'https://via.placeholder.com/300x200'}
             alt={course.title}
             className="w-full h-full object-cover"
           />
         </div>
         <div className="p-4">
           <h3 className="text-xl font-semibold text-gray-800 mb-2">{course.title}</h3>
-          <p className="text-gray-600 mb-2">{course.description}</p>
-          <p className="text-gray-600 mb-2">Price: ${course.price}</p>
-          <p className="text-gray-600 mb-2">Duration: {course.duration || 'N/A'} weeks</p>
+          <p className="text-gray-600 mb-2">{course.description || 'No description available'}</p>
+          <p className="text-gray-600 mb-2">Price: ${course.price || 'N/A'}</p>
+          <p className="text-gray-600 mb-2">Duration: {course.duration_weeks || 'N/A'} weeks</p>
           <p className="text-gray-600 mb-4">Status: {course.status}</p>
 
           <div className="flex justify-between">
             <button
-              onClick={()=>{ navigate(`/courses/${course.id}`)}}
+              onClick={() => navigate(`/courses/${course.id}`)}
               className="text-indigo-600 hover:text-indigo-800 font-medium"
             >
               View
             </button>
             <button
-              onClick={() => handleDeleteCourse(course.course_id)}
+              onClick={() => handleDeleteCourse(course.id)}
               className="text-red-600 hover:text-red-800 font-medium"
             >
               Delete
@@ -330,7 +339,7 @@ const InstructorDashboard = () => {
                       </div>
                     </div>
                     <div className="mt-6">
-                      <button 
+                      <button
                         onClick={handleNewCourse}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md transition duration-200"
                       >
@@ -353,7 +362,7 @@ const InstructorDashboard = () => {
                       </div>
                     </div>
                     <div className="mt-6">
-                      <button 
+                      <button
                         onClick={() => setActiveTab('analytics')}
                         className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition duration-200"
                       >
@@ -376,7 +385,7 @@ const InstructorDashboard = () => {
                       </div>
                     </div>
                     <div className="mt-6">
-                      <button 
+                      <button
                         onClick={() => setActiveTab('feedback')}
                         className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-md transition duration-200"
                       >
@@ -394,7 +403,7 @@ const InstructorDashboard = () => {
         {activeTab === 'analytics' && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Course Analytics</h2>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Enrollment Chart */}
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -404,7 +413,7 @@ const InstructorDashboard = () => {
                   <div className="flex items-end h-48 space-x-2">
                     {analyticsData.enrollments.data.map((value, index) => (
                       <div key={index} className="flex flex-col items-center flex-1">
-                        <div 
+                        <div
                           className="bg-indigo-500 w-full rounded-t-sm"
                           style={{ height: `${(value / Math.max(...analyticsData.enrollments.data)) * 100}%` }}
                         ></div>
@@ -426,7 +435,7 @@ const InstructorDashboard = () => {
                   <div className="flex items-end h-48 space-x-2">
                     {analyticsData.revenue.data.map((value, index) => (
                       <div key={index} className="flex flex-col items-center flex-1">
-                        <div 
+                        <div
                           className="bg-green-500 w-full rounded-t-sm"
                           style={{ height: `${(value / Math.max(...analyticsData.revenue.data)) * 100}%` }}
                         ></div>
@@ -450,8 +459,8 @@ const InstructorDashboard = () => {
                     <div className="w-2/5 font-medium text-gray-700">{course.name}</div>
                     <div className="w-3/5">
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="bg-indigo-600 h-2.5 rounded-full" 
+                        <div
+                          className="bg-indigo-600 h-2.5 rounded-full"
                           style={{ width: `${(course.students / analyticsData.topCourses[0].students) * 100}%` }}
                         ></div>
                       </div>
@@ -470,7 +479,7 @@ const InstructorDashboard = () => {
         {activeTab === 'feedback' && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Student Feedback</h2>
-            
+
             <div className="space-y-6">
               {feedbacks.map((feedback) => (
                 <div key={feedback.id} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
@@ -510,7 +519,7 @@ const InstructorDashboard = () => {
 
         {/* Create/Edit Course Modal */}
         {showCreateForm && (
-          <CreateCourseForm 
+          <CreateCourseForm
             onClose={handleCloseForm}
             courseToEdit={courseToEdit}
           />
@@ -523,7 +532,7 @@ const InstructorDashboard = () => {
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold text-gray-800">Edit Profile</h2>
-                  <button 
+                  <button
                     onClick={() => setEditProfile(false)}
                     className="text-gray-500 hover:text-gray-700"
                   >

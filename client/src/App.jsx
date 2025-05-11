@@ -13,6 +13,10 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ViewContent from './pages/viewContent';
 import UploadFile from './pages/UploadFile';
 import EditCourseForm from './pages/editCourse';
+import QuizManagement from './pages/QuizManagement';
+import UploadQuiz from './pages/UploadQuiz';
+import SolveQuizView from './pages/SolveQuizView';
+import ViewAllQuizzes from './pages/ViewAllQuizzes';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -31,8 +35,11 @@ function AppRoutes() {
         <Route path="/courses/:courseId/content/create" element={<UploadFile />} />
         <Route path="/courses/:id" element={<CourseDetail />} />
         <Route path="courses/:courseId/content/:contentId" element={<ViewContent />}/>
-        <Route path="/course/:courseId/quiz"/>
+        <Route path="/course/:courseId/quiz" element={<QuizManagement />}/>
         <Route path="/courses/:courseId/edit" element={<EditCourseForm />}/>
+        <Route path="/course/:courseId/quiz/upload" element={<UploadQuiz />} />
+        <Route path="/courses/:courseId/quiz/:quizId" element={<SolveQuizView />}/>
+        <Route path="/course/:courseId/quizzes" element={<ViewAllQuizzes />} />
 
       </Routes>
       <Footer />
