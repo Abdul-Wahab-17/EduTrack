@@ -1,56 +1,39 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import {useAuth} from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import {
+  ArrowLeftIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+  CheckIcon,
+  DocumentTextIcon,
+  VideoCameraIcon,
+  MusicalNoteIcon,
+  PhotoIcon,
+  AcademicCapIcon
+} from '@heroicons/react/24/outline';
 
-function Success({setSucMessage , setContent}){
-  const {id} = useParams();
-  return (
-    <>
-     <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-        <p className="text-xl mb-4">Content deleted successfully.</p>
-        <div className="flex justify-end">
-          <button
-            onClick={ async ()=>{ setContent(  (await axios.get(`http://localhost:8080/content/${id}}` , {withCredentials:true})).data ) ;setSucMessage(false)}}
-            className="bg-red-500 text-white px-4 py-2 rounded mr-2"
-          >
-            OK
-          </button>
+function ConfirmationModal({ isOpen, onConfirm, onCancel, message }) {
+  if (!isOpen) return null;
 
-        </div>
-      </div>
-    </div>
-    </>
-  )
-}
-function Delete({ setDelMessage, setSucMessage , courseId , contentId}) {
-  console.log( `courseid: `+courseId + ` contentid: ` + contentId)
-  const handleConfirm = async () =>{
-   try { await axios.delete(`http://localhost:8080/content/remove/${courseId}/${contentId}` , {withCredentials:true})}
-   catch (err) {console.log(err)}
-    setDelMessage(false)
-    setSucMessage(true)
-  }
-  const handleCancel = () =>{
-    setDelMessage(false)
-  }
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-        <p className="text-xl mb-4">Are you sure you want to delete?</p>
-        <div className="flex justify-end">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{message}</h3>
+        <div className="flex justify-end space-x-3">
           <button
-            onClick={handleConfirm}
-            className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Yes
+            Cancel
           </button>
           <button
-            onClick={handleCancel}
-            className="bg-gray-500 text-white px-4 py-2 rounded"
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
           >
-            No
+            Confirm
           </button>
         </div>
       </div>
@@ -58,68 +41,89 @@ function Delete({ setDelMessage, setSucMessage , courseId , contentId}) {
   );
 }
 
-function CourseDetail( ) {
-  const {user} = useAuth();
+function SuccessModal({ isOpen, onClose, message }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <div className="flex flex-col items-center">
+          <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+            <CheckIcon className="h-6 w-6 text-green-600" />
+          </div>
+          <h3 className="mt-3 text-lg font-medium text-gray-900">{message}</h3>
+          <div className="mt-4">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CourseDetail() {
+  const { user } = useAuth();
   const role = user?.role;
   const { id } = useParams();
+  const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [content, setContent] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(0);
-  const [delMessage , setDelMessage] = useState(false);
-  const [sucMessage , setSucMessage] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState(null);
 
-useEffect(() => {
-  const fetchCourseData = async () => {
-    setIsLoading(true);
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      setIsLoading(true);
+      setError(null);
 
-    // Initialize the variables
-    let courseRes = null;
-    let contentRes = null;
+      try {
+        let courseRes, contentRes;
 
-    try {
-      if (role === 'instructor') {
-        // Fetch course and content data for instructor
-        courseRes = await axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true });
-        contentRes = await axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true });
+        if (role === 'instructor') {
+          [courseRes, contentRes] = await Promise.all([
+            axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true }),
+            axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
+          ]);
+        } else if (role === 'student') {
+          [courseRes, contentRes] = await Promise.all([
+            axios.get(`http://localhost:8080/courses/enrolled/${id}`, { withCredentials: true }),
+            axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
+          ]);
 
-      } else if (role === 'student') {
-        // Fetch course and content data for student
-        courseRes = await axios.get(`http://localhost:8080/courses/enrolled/${id}`, { withCredentials: true });
-        contentRes = await axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true });
-
-        // Fetch the progress only for students
-        try {
-          const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, {
-            withCredentials: true
-          });
-
-          const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
-          if (enrollment && enrollment.progress) {
-            setProgress(enrollment.progress);
+          try {
+            const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, {
+              withCredentials: true
+            });
+            const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
+            if (enrollment?.progress) {
+              setProgress(enrollment.progress);
+            }
+          } catch (err) {
+            console.error('Error fetching enrollment:', err);
           }
-        } catch (err) {
-          console.error('Error fetching enrollment:', err);
         }
-      }
 
-      // Only set state if the responses are not null
-      if (courseRes && contentRes) {
         setCourse(courseRes.data);
         setContent(contentRes.data);
+      } catch (err) {
+        console.error('Error fetching course data:', err);
+        setError('Failed to load course. Please try again later.');
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-    } catch (err) {
-      console.error('Error fetching course data:', err);
-      setError('Failed to load course. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  fetchCourseData();
-}, [id, role]);
+    fetchCourseData();
+  }, [id, role]);
 
   const updateProgress = async (newProgress) => {
     try {
@@ -135,190 +139,291 @@ useEffect(() => {
   };
 
   const handleContentComplete = () => {
-    // Calculate new progress based on completed content
     const totalItems = content.length;
     const newProgress = Math.min(((progress * totalItems) + 1) / totalItems * 100, 100);
     updateProgress(newProgress);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const handleDeleteContent = async () => {
+    try {
+      await axios.delete(
+        `http://localhost:8080/content/remove/${id}/${selectedContentId}`,
+        { withCredentials: true }
+      );
+      setContent(content.filter(item => item.content_id !== selectedContentId));
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Error deleting content:', err);
+      setError('Failed to delete content. Please try again.');
+    } finally {
+      setShowDeleteModal(false);
+    }
   };
 
+  const getContentTypeIcon = (type) => {
+    switch (type) {
+      case 'video': return <VideoCameraIcon className="h-5 w-5 text-blue-500" />;
+      case 'file': return <DocumentTextIcon className="h-5 w-5 text-yellow-500" />;
+      case 'audio': return <MusicalNoteIcon className="h-5 w-5 text-green-500" />;
+      case 'pdf': return <DocumentTextIcon className="h-5 w-5 text-purple-500" />;
+      case 'image': return <PhotoIcon className="h-5 w-5 text-indigo-500" />;
+      default: return <DocumentTextIcon className="h-5 w-5 text-gray-500" />;
+    }
+  };
 
   if (isLoading) {
-    return <div className="text-center mt-8">Loading course...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center mt-8 text-red-500">{error}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full text-center">
+          <p className="text-red-500 text-lg">{error}</p>
+          <Link
+            to="/courses"
+            className="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            Back to Courses
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (!course) {
-    return <div className="text-center mt-8">Course not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full text-center">
+          <p className="text-lg">Course not found</p>
+          <Link
+            to="/courses"
+            className="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            Back to Courses
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <Link to="/courses" className="text-blue-500 hover:underline">
-          &larr; Back to Courses
-        </Link>
-      </div>
-
-      <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
-            <p className="text-gray-800 mb-4">Instructor: {course.instructor_name}</p>
-            {course.duration_weeks && (
-              <p className="text-gray-800 mb-4">Duration: {course.duration_weeks} weeks</p>
-            )}
-            { role === 'instructor'  && ( <p className="text-gray-800 mb-4" >Price: {course.price}$</p>)}
-
-            { role === 'instructor'  && ( <p className="text-gray-800 mb-4" >Creation Date: {new Date(course.created_at).toLocaleDateString('en-CA')} </p>)}
-            <p className="text-gray-800 mb-6">{course.description}</p>
-
-          </div>
-
-          {role === 'instructor' && (
-            <Link
-              to={`/courses/${id}/edit`}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
-            >
-              Edit Course
-            </Link>
-          )}
-        </div>
-
-        {role === 'student' && (
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">Your Progress</h3>
-            <div className="w-full bg-gray-200 rounded-full h-4">
-              <div
-                className="bg-green-500 h-4 rounded-full"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <p className="text-right mt-1">{Math.round(progress)}%</p>
-          </div>
-        )}
-      </div>
-
-      {role === 'instructor' && (
-        <div className="mb-8">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6">
           <Link
-            to={`/courses/${id}/content/create`}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            to="/courses"
+            className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
           >
-            Add Course Content
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            Back to Courses
           </Link>
-          <Link to={`/course/${id}/quiz`}  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Quiz Management</Link>
         </div>
-      )}
-{role === 'student' && (
-  <div className="mb-8">
-    <Link
-      to={`/course/${id}/quizzes`}
-      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-    >
-      View Quizzes
-    </Link>
-  </div>
-)}
 
-      <div className="bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-2xl font-semibold mb-6">Course Content</h2>
+        {/* Course Header */}
+        <div className="bg-white shadow rounded-lg overflow-hidden mb-8">
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  {course.title}
+                </h1>
+                <p className="text-gray-600 mb-4">
+                  Instructor: <span className="font-medium">{course.instructor_name}</span>
+                </p>
 
-        {content.length === 0 ? (
-          <p>No content available for this course yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {content.map((item) => (
-              <div
-                key={item.content_id}
-                className="border-b pb-4 last:border-b-0"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center">
-                      {item.content_type === 'video' && (
-                        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Video
-                        </span>
-                      )}
-                      {item.content_type === 'file' && (
-                        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          File
-                        </span>
-                      )}
-                      {item.content_type === 'audio' && (
-                        <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Audio
-                        </span>
-                      )}
-                      {item.content_type === 'pdf' && (
-                        <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          PDF
-                        </span>
-                      )}
-                      {item.content_type === 'image' && (
-                        <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded mr-2">
-                          Image
-                        </span>
-                      )}
-                      <h3 className="text-xl font-medium">{item.file_name}</h3>
+                <div className="flex flex-wrap gap-4 mb-4">
+                  {course.duration_weeks && (
+                    <div className="bg-blue-50 px-3 py-1 rounded-full text-sm text-blue-800">
+                      {course.duration_weeks} weeks
                     </div>
-                    {item.uploaded_at && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Uploaded on {formatDate(item.uploaded_at)}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Link
-                      to={`/courses/${id}/content/${item.content_id}`}
-                      className="text-blue-500 hover:underline"
-                    >
-                      View
-                    </Link>
-
-                    {role === 'instructor' && (
-                      <button
-                        onClick={() =>{ setDelMessage(true)}}
-                        className="ml-4 text-yellow-500 hover:underline"
-                      >
-                        Delete
-                      </button>
-
-                    )}
-                  </div>
-                  <div>
-                    {delMessage && ( <Delete  setDelMessage={setDelMessage} setSucMessage={setSucMessage} courseId={id} contentId={item.content_id} />)}
-                  </div>
-                  <div>
-                    {sucMessage && (<Success setSucMessage={setSucMessage} setContent={setContent}/>)}
-                  </div>
+                  )}
+                  {role === 'instructor' && (
+                    <div className="bg-green-50 px-3 py-1 rounded-full text-sm text-green-800">
+                      ${course.price}
+                    </div>
+                  )}
+                  {role === 'instructor' && (
+                    <div className="bg-purple-50 px-3 py-1 rounded-full text-sm text-purple-800">
+                      Created: {new Date(course.created_at).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
 
-                {role === 'student' && (
-                  <button
-                    onClick={() => handleContentComplete()}
-                    className="mt-2 text-sm bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded"
-                  >
-                    Mark as Completed
-                  </button>
-                )}
+                <p className="text-gray-700">{course.description}</p>
               </div>
-            ))}
+
+              {role === 'instructor' && (
+                <div className="mt-4 sm:mt-0 flex space-x-2">
+                  <button
+                    onClick={() => navigate(`/courses/${id}/edit`)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <PencilIcon className="h-4 w-4 mr-2" />
+                    Edit Course
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {role === 'student' && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-medium text-gray-900">Your Progress</h3>
+                  <span className="text-sm font-medium text-indigo-600">
+                    {Math.round(progress)}% Complete
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-indigo-600 h-2.5 rounded-full"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        {role === 'instructor' && (
+          <div className="flex flex-wrap gap-3 mb-8">
+            <button
+              onClick={() => navigate(`/courses/${id}/content/create`)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Content
+            </button>
+            <button
+              onClick={() => navigate(`/course/${id}/quiz`)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <AcademicCapIcon className="h-4 w-4 mr-2" />
+              Quiz Management
+            </button>
+            <button
+              onClick={() => navigate(`/course/${id}/assignments`)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+            >
+              <DocumentTextIcon className="h-4 w-4 mr-2" />
+              Assignment Management
+            </button>
           </div>
         )}
+
+        {role === 'student' && (
+          <div className="flex flex-wrap gap-3 mb-8">
+            <button
+              onClick={() => navigate(`/course/${id}/quizzes`)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <AcademicCapIcon className="h-4 w-4 mr-2" />
+              View Quizzes
+            </button>
+            <button
+              onClick={() => navigate(`/course/${id}/assignments`)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+            >
+              <DocumentTextIcon className="h-4 w-4 mr-2" />
+              View Assignments
+            </button>
+          </div>
+        )}
+
+        {/* Course Content */}
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Course Content</h2>
+          </div>
+
+          {content.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className="text-gray-500">No content available for this course yet.</p>
+              {role === 'instructor' && (
+                <button
+                  onClick={() => navigate(`/courses/${id}/content/create`)}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Content
+                </button>
+              )}
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {content.map((item) => (
+                <li key={item.content_id} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center min-w-0">
+                      <div className="flex-shrink-0 mr-4">
+                        {getContentTypeIcon(item.content_type)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-medium text-indigo-600 truncate">
+                          {item.file_name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Uploaded: {new Date(item.uploaded_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <Link
+                        to={`/courses/${id}/content/${item.content_id}`}
+                        className="text-sm font-medium text-indigo-600 hover:text-indigo-900"
+                      >
+                        View
+                      </Link>
+                      {role === 'instructor' && (
+                        <button
+                          onClick={() => {
+                            setSelectedContentId(item.content_id);
+                            setShowDeleteModal(true);
+                          }}
+                          className="text-sm font-medium text-red-600 hover:text-red-900"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {role === 'student' && (
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        onClick={handleContentComplete}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckIcon className="h-3 w-3 mr-1" />
+                        Mark as Completed
+                      </button>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
+
+      {/* Modals */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onConfirm={handleDeleteContent}
+        onCancel={() => setShowDeleteModal(false)}
+        message="Are you sure you want to delete this content?"
+      />
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        message="Content deleted successfully!"
+      />
     </div>
   );
 }
