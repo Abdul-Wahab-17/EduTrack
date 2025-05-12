@@ -177,12 +177,7 @@ function CourseList() {
               <p className="text-gray-600">
                 There are no recommendations for now.
               </p>
-              {/* <a
-                href="/courses"
-                className="text-blue-600 hover:underline mt-2 inline-block"
-              >
-                Browse available courses
-              </a> */}
+              
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

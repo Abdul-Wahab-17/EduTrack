@@ -18,6 +18,7 @@ import UploadQuiz from './pages/UploadQuiz';
 import SolveQuizView from './pages/SolveQuizView';
 import ViewAllQuizzes from './pages/ViewAllQuizzes';
 import AssignmentManagement from './pages/AssignmentManagement';
+import StudentAssignmentView from './pages/StudentAssignmentView';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -42,6 +43,8 @@ function AppRoutes() {
         <Route path="/courses/:courseId/quiz/:quizId" element={<SolveQuizView />}/>
         <Route path="/course/:courseId/quizzes" element={<ViewAllQuizzes />} />
         <Route path="/course/:courseId/assignments" element={<AssignmentManagement />} />
+        <Route path="/course/:courseId/assignment" element={<StudentAssignmentView />} />
+
 
       </Routes>
       <Footer />

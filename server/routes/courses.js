@@ -5,6 +5,228 @@ var db = require(`../db`);
 const {ensureAuthenticated , ensureInstructor , ensureStudent, ensureOwnership } = require(`../middleware/authMiddleware`);
 const {checkStudents , ensureEnrollment} = require("../middleware/courseMiddleware");
 
+const getStudentId = (userId, callback) => {
+  db.query(
+    `SELECT student_id FROM students WHERE user_id = ?`,
+    [userId],
+    (err, results) => {
+      if (err) return callback(err, null);
+      if (results.length === 0) return callback(new Error('Student not found'), null);
+      callback(null, results[0].student_id);
+    }
+  );
+};
+const getInstructorId = (userId, callback) => {
+  db.query(
+    `SELECT instructor_id FROM instructors WHERE user_id = ?`,
+    [userId],
+    (err, results) => {
+      if (err) return callback(err, null);
+      if (results.length === 0) return callback(new Error('Instructor not found'), null);
+      callback(null, results[0].instructor_id);
+    }
+  );
+};
+
+// Get all feedback for instructor's courses
+router.get('/instructor/feedback', ensureAuthenticated, ensureInstructor, (req, res) => {
+  const userId = req.user.id;
+
+  getInstructorId(userId, (err, instructorId) => {
+    if (err) {
+      console.error('Error fetching instructor ID:', err.message);
+      return res.status(500).json({ message: 'Failed to fetch instructor ID' });
+    }
+
+    // First get all courses taught by this instructor
+    db.query(
+      'SELECT course_id FROM courses WHERE instructor_id = ?',
+      [instructorId],
+      (err, courses) => {
+        if (err) {
+          console.error('Error fetching courses:', err.message);
+          return res.status(500).json({ message: 'Failed to fetch courses' });
+        }
+
+        if (courses.length === 0) {
+          return res.status(200).json({ feedback: [] });
+        }
+
+        const courseIds = courses.map(c => c.course_id);
+
+        // Then get all feedback for these courses
+        db.query(
+          `SELECT
+            ec.feedback,
+            ec.rating,
+            ec.updated_at as feedback_date,
+            c.title as course_title,
+            u.username as student_name
+          FROM enrolledCourses ec
+          JOIN courses c ON ec.course_id = c.course_id
+          JOIN students s ON ec.student_id = s.student_id
+          JOIN users u ON s.user_id = u.user_id
+          WHERE ec.course_id IN (?)
+          AND ec.feedback IS NOT NULL
+          ORDER BY ec.updated_at DESC`,
+          [courseIds],
+          (err, feedback) => {
+            if (err) {
+              console.error('Error fetching instructor feedback:', err.message);
+              return res.status(500).json({ message: 'Failed to fetch feedback' });
+            }
+
+            res.json({ feedback });
+          }
+        );
+      }
+    );
+  });
+});
+
+router.get('/:courseId/user-rating', ensureStudent, (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user.id;
+
+  getStudentId(userId, (err, studentId) => {
+    if (err) {
+      console.error('Error fetching student ID:', err.message);
+      return res.status(500).json({ message: 'Failed to fetch student ID' });
+    }
+
+    // Fetch the user's rating for the course
+    db.query(
+      `SELECT rating FROM enrolledCourses WHERE course_id = ? AND student_id = ?`,
+      [courseId, studentId],
+      (err, result) => {
+        if (err) {
+          console.error('Error fetching user rating:', err.message);
+          return res.status(500).json({ message: 'Failed to fetch user rating' });
+        }
+        res.json({ rating: result.length > 0 ? result[0].rating : 5 });
+      }
+    );
+  });
+});
+
+router.put('/:courseId/rate', ensureStudent, (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user.id;
+  const { rating } = req.body;
+
+  // Validate rating
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+  }
+
+  // Step 1: Get the student ID
+  getStudentId(userId, (err, studentId) => {
+    if (err) {
+      console.error('Error fetching student ID:', err.message);
+      return res.status(500).json({ message: 'Failed to fetch student ID' });
+    }
+
+    // Step 2: Check enrollment
+    db.query(
+      'SELECT * FROM enrolledCourses WHERE course_id = ? AND student_id = ?',
+      [courseId, studentId],
+      (err, enrollment) => {
+        if (err) {
+          console.error('Error checking enrollment:', err.message);
+          return res.status(500).json({ message: 'Failed to check enrollment' });
+        }
+
+        if (enrollment.length === 0) {
+          return res.status(403).json({ message: 'You must be enrolled to rate this course' });
+        }
+
+        // Step 3: Update the rating in the enrolledCourses table
+        db.query(
+          'UPDATE enrolledCourses SET rating = ? WHERE course_id = ? AND student_id = ?',
+          [rating, courseId, studentId],
+          (err) => {
+            if (err) {
+              console.error('Error updating course rating:', err.message);
+              return res.status(500).json({ message: 'Failed to update course rating' });
+            }
+
+            res.json({
+              message: 'Course rated successfully',
+              rating: rating
+            });
+          }
+        );
+      }
+    );
+  });
+});
+
+router.get('/:courseId/feedback', ensureStudent, (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user.id;
+
+  // Get the student ID first
+  getStudentId(userId, (err, studentId) => {
+    if (err) {
+      console.error('Error fetching student ID:', err.message);
+      return res.status(500).json({ message: 'Failed to fetch student ID' });
+    }
+
+    // Fetch existing feedback
+    db.query(
+      'SELECT feedback FROM enrolledCourses WHERE course_id = ? AND student_id = ?',
+      [courseId, studentId],
+      (err, result) => {
+        if (err) {
+          console.error('Error fetching feedback:', err.message);
+          return res.status(500).json({ message: 'Failed to fetch feedback' });
+        }
+
+        if (result.length === 0) {
+          return res.status(404).json({ message: 'No feedback found' });
+        }
+
+        res.json({ feedback: result[0].feedback });
+      }
+    );
+  });
+});
+
+router.put('/:courseId/feedback', ensureStudent, (req, res) => {
+  const { courseId } = req.params;
+  const { feedback } = req.body;
+  const userId = req.user.id;
+
+  if (!feedback) {
+    return res.status(400).json({ message: 'Feedback cannot be empty' });
+  }
+
+
+  // Get student ID first
+  getStudentId(userId, (err, studentId) => {
+    if (err) {
+      console.error('Error fetching student ID:', err.message);
+      return res.status(500).json({ message: 'Failed to fetch student ID' });
+    }
+
+    // Update the feedback in enrolledCourses
+    db.query(
+      'UPDATE enrolledCourses SET feedback = ? WHERE course_id = ? AND student_id = ?',
+      [feedback, courseId, studentId],
+      (err) => {
+        if (err) {
+          console.error('Error updating feedback:', err.message);
+          return res.status(500).json({ message: 'Failed to submit feedback' });
+        }
+
+        res.json({ message: 'Feedback submitted successfully' });
+      }
+    );
+  });
+});
+
+
+
 router.get(`/enrolledCourses`, ensureAuthenticated, ensureStudent, (req, res) => {
   const id = req.user.id;
   const query = `
@@ -169,6 +391,71 @@ router.get('/course/:courseId', ensureAuthenticated , ensureInstructor , ensureO
       }
     );
   });
+router.put('/:courseId/rate', ensureStudent, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+       const  studentId  = req.user.id;
+    const { rating } = req.body;
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+    }
+
+    // Check enrollment
+    const enrollment = await db.query(
+      'SELECT * FROM enrollment WHERE course_id = $1 AND student_id = $2',
+      [courseId, studentId]
+    );
+
+    if (enrollment.rows.length === 0) {
+      return res.status(403).json({ message: 'You must be enrolled to rate this course' });
+    }
+
+    // Update rating
+    await db.query(
+      'UPDATE enrollment SET course_rating = $1 WHERE course_id = $2 AND student_id = $3',
+      [rating, courseId, studentId]
+    );
+
+    // Update course average rating
+    await db.query(`
+      UPDATE courses
+      SET average_rating = (
+        SELECT AVG(course_rating)
+        FROM enrollment
+        WHERE course_id = $1 AND course_rating IS NOT NULL
+      )
+      WHERE id = $1
+    `, [courseId]);
+
+    res.json({
+      message: 'Course rated successfully',
+      newAverage: (await db.query('SELECT average_rating FROM courses WHERE id = $1', [courseId])).rows[0].average_rating
+    });
+  } catch (error) {
+    console.error('Error rating course:', error);
+    res.status(500).json({ message: 'Failed to rate course' });
+  }
+});
+
+// Add this to your courses routes
+router.get('/:courseId/user-rating', ensureStudent, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const  studentId  = req.user.id;
+    const result = await db.query(
+      `SELECT rating as rating FROM enrolledCourses WHERE course_id = ${courseId} AND student_id = ${studentId}`,
+      [courseId, studentId]
+    );
+
+    res.json({ rating:  (result[0] ? result.rows[0]?.rating : 5 )});
+  } catch (error) {
+    console.error('Error fetching user rating:', error);
+    res.status(500).json({ message: 'Failed to fetch user rating' });
+  }
+});
+
 
 router.get('/ownedCourses', ensureAuthenticated, ensureInstructor, (req, res) => {
   const id = req.user.id; // Assuming `instructor_id` is part of `req.user`

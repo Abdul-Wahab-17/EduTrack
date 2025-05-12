@@ -17,7 +17,7 @@ var courseRouter = require(`./routes/courses`);
 var contentRouter = require(`./routes/content`);
 var quizRouter = require(`./routes/quizzes`);
 var assignmentRouter = require(`./routes/assignments`);
-
+var analyticsRouter = require(`./routes/analytics`);
 
 var app = express();
 
@@ -57,7 +57,7 @@ app.use(`/courses` , courseRouter);
 app.use(`/content` , contentRouter);
 app.use(`/quizzes` , quizRouter);
 app.use(`/assignments` , assignmentRouter);
-
+app.use(`/analytics` , analyticsRouter);
 
 app.use(function(req, res, next) {
   next(createError(404, 'Page Not Found'));

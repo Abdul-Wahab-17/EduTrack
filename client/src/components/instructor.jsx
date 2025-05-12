@@ -1,4 +1,3 @@
-// pages/InstructorDashboard.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -13,129 +12,86 @@ import {
   StarIcon,
 } from '@heroicons/react/24/outline';
 import CreateCourseForm from '../components/CreateCourseForm';
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+
 
 const InstructorDashboard = () => {
-  const { user } = useAuth(); // Assuming `AuthContext` provides user data
+  const { user } = useAuth();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [courseToEdit, setCourseToEdit] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editProfile, setEditProfile] = useState(false);
-
-  const navigate = useNavigate();
-
- const [courses, setCourses] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(null);
+  const navigate = useNavigate();
 
   // Fetch courses function
   const fetchCourses = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/courses/ownedCourses', { withCredentials: true });
-      console.log('API Response Data:', response.data); // Log API response for debugging
-      setCourses(response.data); // Store fetched courses in the state
+      const response = await axios.get('http://localhost:8080/courses/ownedCourses', {
+        withCredentials: true
+      });
+      setCourses(response.data);
     } catch (error) {
       console.error('Error fetching courses:', error);
       setError('Failed to fetch courses. Please try again later.');
     } finally {
-      setLoading(false); // Set loading to false after the request finishes
+      setLoading(false);
     }
   };
 
-  // Call fetchCourses when the component mounts
+  // Fetch analytics when analytics tab is active
+  const fetchAnalytics = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/analytics/instructor', {
+        withCredentials: true
+      });
+      setAnalytics(response.data);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      setError('Failed to fetch analytics data');
+    }
+  };
+
+  // Fetch feedback when feedback tab is active
+  const fetchInstructorFeedback = async () => {
+    setFeedbackLoading(true);
+    setFeedbackError(null);
+    try {
+      const response = await axios.get(
+        'http://localhost:8080/courses/instructor/feedback',
+        { withCredentials: true }
+      );
+      setFeedbacks(response.data.feedback || []);
+    } catch (error) {
+      console.error('Error fetching feedback:', error);
+      setFeedbackError('Failed to load feedback. Please try again.');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchCourses(); // Fetch courses on component mount
-  }, []); // Empty dependency array ensures this only runs once
+    fetchCourses();
+  }, []);
 
-  if (loading) return <div>Loading...</div>; // Show loading while fetching
-  if (error) return <div>{error}</div>;
-  // const stats = [
-  //   {
-  //     name: 'Total Students',
-  //     value: courses.reduce((sum, course) => sum + course.students, 0).toLocaleString(),
-  //     icon: UserGroupIcon,
-  //     change: '+12%',
-  //     changeType: 'positive'
-  //   },
-  //   {
-  //     name: 'Total Revenue',
-  //     value: `$${courses.reduce((sum, course) => {
-  //       const revenue = parseFloat(course.revenue.replace(/[^0-9.]/g, ''));
-  //       return sum + revenue;
-  //     }, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-  //     icon: CurrencyDollarIcon,
-  //     change: '+24%',
-  //     changeType: 'positive'
-  //   },
-  //   {
-  //     name: 'Course Rating',
-  //     value: courses.length > 0
-  //       ? `${(courses.reduce((sum, course) => sum + course.rating, 0) / courses.length).toFixed(1)}/5`
-  //       : '0/5',
-  //     icon: ChartBarIcon,
-  //     change: '+0.2',
-  //     changeType: 'positive'
-  //   },
-  //   {
-  //     name: 'Courses Published',
-  //     value: courses.length,
-  //     icon: BookOpenIcon,
-  //     change: `+${Math.max(0, courses.length - 3)}`,
-  //     changeType: 'positive'
-  //   },
-  // ];
-
-  const feedbacks = [
-    {
-      id: 1,
-      course: "Machine Learning A-Z",
-      student: "Alex Johnson",
-      rating: 5,
-      comment: "Excellent course! The instructor explains complex concepts in a very understandable way.",
-      date: "2 days ago"
-    },
-    {
-      id: 2,
-      course: "The Complete Web Developer",
-      student: "Sarah Williams",
-      rating: 4,
-      comment: "Great content, but some sections could use more practical examples.",
-      date: "1 week ago"
-    },
-    {
-      id: 3,
-      course: "Digital Marketing Masterclass",
-      student: "Michael Brown",
-      rating: 5,
-      comment: "Changed my perspective on digital marketing. Highly recommended!",
-      date: "3 weeks ago"
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      fetchAnalytics();
+    } else if (activeTab === 'feedback') {
+      fetchInstructorFeedback();
     }
-  ];
-
-  const analyticsData = {
-    enrollments: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      data: [1200, 1900, 3000, 2500, 2100, 3200]
-    },
-    revenue: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      data: [5400, 8200, 12500, 9800, 11500, 15800]
-    },
-    topCourses: [
-      { name: "Machine Learning A-Z", students: 12450 },
-      { name: "The Complete Web Developer", students: 8765 },
-      { name: "Digital Marketing Masterclass", students: 5421 }
-    ]
-  };
+  }, [activeTab]);
 
   const handleNewCourse = () => {
     setCourseToEdit(null);
     setShowCreateForm(true);
   };
-
-  // const handleEditCourse = (course) => {
-  //   setCourseToEdit(course);
-  //   setShowCreateForm(true);
-  // };
 
   const handleDeleteCourse = (courseId) => {
     const updatedCourses = courses.filter(course => course.id !== courseId);
@@ -144,12 +100,10 @@ const InstructorDashboard = () => {
 
   const handleCloseForm = () => {
     setShowCreateForm(false);
-    // You can reload courses here if needed
   };
 
   const handleProfileChange = () => {
-   //  const { name, value } = e.target;
-    // Update profile using setState or context update
+    // Profile change handler
   };
 
   const handleProfileImageChange = (e) => {
@@ -157,14 +111,13 @@ const InstructorDashboard = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // You can update the profile image in context here
+        // Update profile image
       };
       reader.readAsDataURL(file);
     }
   };
 
   const saveProfile = () => {
-    // Save updated profile data to context
     setEditProfile(false);
   };
 
@@ -177,11 +130,27 @@ const InstructorDashboard = () => {
     ));
   };
 
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Format date for charts
+  const formatChartDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('default', { month: 'short' });
+  };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Banner */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-xl shadow-lg overflow-hidden mb-8">
@@ -251,76 +220,45 @@ const InstructorDashboard = () => {
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <>
-            {/* Stats */}
-            {/* <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-              {stats.map((stat) => (
-                <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <stat.icon className="h-6 w-6 text-gray-400" aria-hidden="true" />
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                          <dd>
-                            <div className="text-lg font-medium text-gray-900">{stat.value}</div>
-                          </dd>
-                        </dl>
-                      </div>
+            {/* Your Courses */}
+            <div className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Courses</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {courses.map((course) => (
+                  <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="h-48 w-full overflow-hidden">
+                      <img
+                        src={course.image_url || 'https://via.placeholder.com/300x200'}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="mt-4">
-                      <div className={`inline-flex items-baseline px-2.5 py-0.5 rounded-full text-sm font-medium ${stat.changeType === 'positive' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        <ArrowTrendingUpIcon className={`-ml-1 mr-0.5 h-4 w-4 ${stat.changeType === 'positive' ? 'text-green-500' : 'text-red-500'}`} />
-                        <span className="sr-only">{stat.changeType === 'positive' ? 'Increased' : 'Decreased'} by</span>
-                        {stat.change}
+                    <div className="p-4">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">{course.title}</h3>
+                      <p className="text-gray-600 mb-2">{course.description || 'No description available'}</p>
+                      <p className="text-gray-600 mb-2">Price: ${course.price || 'N/A'}</p>
+                      <p className="text-gray-600 mb-2">Duration: {course.duration_weeks || 'N/A'} weeks</p>
+                      <p className="text-gray-600 mb-4">Status: {course.status}</p>
+
+                      <div className="flex justify-between">
+                        <button
+                          onClick={() => navigate(`/courses/${course.id}`)}
+                          className="text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCourse(course.id)}
+                          className="text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div> */}
-
-            {/* Your Courses */}
-         <div className="mb-12">
-  <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Courses</h2>
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {courses.map((course) => (
-      <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="h-48 w-full overflow-hidden">
-          <img
-            src={course.image_url || 'https://via.placeholder.com/300x200'}
-            alt={course.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <div className="p-4">
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">{course.title}</h3>
-          <p className="text-gray-600 mb-2">{course.description || 'No description available'}</p>
-          <p className="text-gray-600 mb-2">Price: ${course.price || 'N/A'}</p>
-          <p className="text-gray-600 mb-2">Duration: {course.duration_weeks || 'N/A'} weeks</p>
-          <p className="text-gray-600 mb-4">Status: {course.status}</p>
-
-          <div className="flex justify-between">
-            <button
-              onClick={() => navigate(`/courses/${course.id}`)}
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
-            >
-              View
-            </button>
-            <button
-              onClick={() => handleDeleteCourse(course.id)}
-              className="text-red-600 hover:text-red-800 font-medium"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
-
+                ))}
+              </div>
+            </div>
 
             {/* Quick Actions */}
             <div>
@@ -400,120 +338,162 @@ const InstructorDashboard = () => {
         )}
 
         {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Course Analytics</h2>
+       {activeTab === 'analytics' && analytics && (
+  <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h2 className="text-2xl font-bold text-gray-800 mb-6">Course Analytics</h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Enrollment Chart */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-800 mb-4">Monthly Enrollments</h3>
-                <div className="h-64">
-                  {/* This would be a chart in a real app - using a simple bar representation */}
-                  <div className="flex items-end h-48 space-x-2">
-                    {analyticsData.enrollments.data.map((value, index) => (
-                      <div key={index} className="flex flex-col items-center flex-1">
-                        <div
-                          className="bg-indigo-500 w-full rounded-t-sm"
-                          style={{ height: `${(value / Math.max(...analyticsData.enrollments.data)) * 100}%` }}
-                        ></div>
-                        <span className="text-xs text-gray-500 mt-1">{analyticsData.enrollments.labels[index]}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 text-center text-sm text-gray-500">
-                    Total: {analyticsData.enrollments.data.reduce((a, b) => a + b, 0).toLocaleString()} enrollments
-                  </div>
-                </div>
-              </div>
+    {/* Top Statistics */}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="text-lg font-medium text-gray-800">Total Students</h3>
+        <p className="text-xl font-semibold text-indigo-600">
+          {analytics.stats.totalStudents}
+        </p>
+      </div>
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="text-lg font-medium text-gray-800">Total Revenue</h3>
+        <p className="text-xl font-semibold text-green-600">
+          {formatCurrency(analytics.stats.totalRevenue)}
+        </p>
+      </div>
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="text-lg font-medium text-gray-800">Average Rating</h3>
+        <p className="text-xl font-semibold text-yellow-600">
+          {analytics.stats.averageRating.toFixed(1)}/5
+        </p>
+      </div>
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="text-lg font-medium text-gray-800">Total Courses</h3>
+        <p className="text-xl font-semibold text-blue-600">
+          {analytics.stats.courseCount}
+        </p>
+      </div>
+    </div>
 
-              {/* Revenue Chart */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-800 mb-4">Monthly Revenue</h3>
-                <div className="h-64">
-                  {/* This would be a chart in a real app - using a simple bar representation */}
-                  <div className="flex items-end h-48 space-x-2">
-                    {analyticsData.revenue.data.map((value, index) => (
-                      <div key={index} className="flex flex-col items-center flex-1">
-                        <div
-                          className="bg-green-500 w-full rounded-t-sm"
-                          style={{ height: `${(value / Math.max(...analyticsData.revenue.data)) * 100}%` }}
-                        ></div>
-                        <span className="text-xs text-gray-500 mt-1">{analyticsData.revenue.labels[index]}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 text-center text-sm text-gray-500">
-                    Total: ${analyticsData.revenue.data.reduce((a, b) => a + b, 0).toLocaleString()} revenue
-                  </div>
-                </div>
+    {/* Monthly Enrollment Chart */}
+    <div className="bg-gray-50 p-4 rounded-lg mb-8">
+      <h3 className="text-lg font-medium text-gray-800 mb-4">Monthly Enrollments</h3>
+      <div className="h-64">
+        <LineChart width={600} height={300} data={analytics.charts.monthlyEnrollments}>
+          <Line type="monotone" dataKey="enrollments" stroke="#4f46e5" />
+          <XAxis dataKey="month" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+        </LineChart>
+      </div>
+    </div>
+
+    {/* Monthly Revenue Chart */}
+    <div className="bg-gray-50 p-4 rounded-lg mb-8">
+      <h3 className="text-lg font-medium text-gray-800 mb-4">Monthly Revenue</h3>
+      <div className="h-64">
+        <LineChart width={600} height={300} data={analytics.charts.monthlyRevenue}>
+          <Line type="monotone" dataKey="revenue" stroke="#16a34a" />
+          <XAxis dataKey="month" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+        </LineChart>
+      </div>
+    </div>
+
+    {/* Top Performing Courses */}
+    <div className="bg-gray-50 p-4 rounded-lg mb-8">
+      <h3 className="text-lg font-medium text-gray-800 mb-4">Top Performing Courses</h3>
+      <div className="space-y-4">
+        {analytics.charts.topCourses.map((course, index) => (
+          <div key={index} className="flex items-center">
+            <div className="w-2/5 font-medium text-gray-700 truncate">{course.title}</div>
+            <div className="w-3/5">
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-indigo-600 h-2.5 rounded-full"
+                  style={{
+                    width: `${(course.enrollments / Math.max(...analytics.charts.topCourses.map(c => c.enrollments))) * 100}%`
+                  }}
+                ></div>
               </div>
             </div>
-
-            {/* Top Courses */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-800 mb-4">Top Performing Courses</h3>
-              <div className="space-y-4">
-                {analyticsData.topCourses.map((course, index) => (
-                  <div key={index} className="flex items-center">
-                    <div className="w-2/5 font-medium text-gray-700">{course.name}</div>
-                    <div className="w-3/5">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div
-                          className="bg-indigo-600 h-2.5 rounded-full"
-                          style={{ width: `${(course.students / analyticsData.topCourses[0].students) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="w-1/5 text-right text-sm text-gray-500">
-                      {course.students.toLocaleString()} students
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="w-1/5 text-right text-sm text-gray-500">
+              {course.enrollments.toLocaleString()} students
             </div>
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+
+  </div>
+)}
 
         {/* Feedback Tab */}
         {activeTab === 'feedback' && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Student Feedback</h2>
 
-            <div className="space-y-6">
-              {feedbacks.map((feedback) => (
-                <div key={feedback.id} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <span className="text-indigo-600 font-medium">
-                          {feedback.student.charAt(0)}
-                        </span>
+            {feedbackLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : feedbackError ? (
+              <div className="text-red-500 text-center py-8">{feedbackError}</div>
+            ) : feedbacks.length === 0 ? (
+              <div className="text-gray-500 text-center py-8">
+                No feedback received yet for your courses.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {feedbacks.map((feedback, index) => (
+                  <div key={index} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <span className="text-indigo-600 font-medium">
+                            {feedback.student_name?.charAt(0) || 'S'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="ml-4 flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium text-gray-800">{feedback.student}</h4>
-                        <span className="text-xs text-gray-500">{feedback.date}</span>
-                      </div>
-                      <div className="mt-1 flex items-center">
-                        {renderStars(feedback.rating)}
-                        <span className="ml-2 text-xs text-gray-500">{feedback.rating}.0 rating</span>
-                      </div>
-                      <p className="mt-2 text-sm text-gray-600">{feedback.comment}</p>
-                      <div className="mt-3 flex space-x-4">
-                        <button className="text-xs text-indigo-600 hover:text-indigo-800">
-                          Reply
-                        </button>
-                        <button className="text-xs text-gray-500 hover:text-gray-700">
-                          Report
-                        </button>
+                      <div className="ml-4 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-gray-800">
+                            {feedback.student_name || 'Anonymous Student'}
+                          </h4>
+                          <span className="text-xs text-gray-500">
+                            {new Date(feedback.feedback_date).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center">
+                          {renderStars(feedback.rating || 0)}
+                          <span className="ml-2 text-xs text-gray-500">
+                            {feedback.rating?.toFixed(1) || '0.0'} rating
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600">
+                          {feedback.feedback || 'No feedback text provided'}
+                        </p>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-sm text-gray-500">
+                            Course: {feedback.course_title || 'Unknown Course'}
+                          </span>
+                          <button
+                            className="text-xs text-indigo-600 hover:text-indigo-800"
+                            onClick={() => {
+                              // Implement reply functionality if needed
+                            }}
+                          >
+                            Reply
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

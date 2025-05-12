@@ -12,7 +12,8 @@ import {
   VideoCameraIcon,
   MusicalNoteIcon,
   PhotoIcon,
-  AcademicCapIcon
+  AcademicCapIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 
 function ConfirmationModal({ isOpen, onConfirm, onCancel, message }) {
@@ -66,6 +67,63 @@ function SuccessModal({ isOpen, onClose, message }) {
   );
 }
 
+function RatingStars({ rating, setRating, disabled = false }) {
+  return (
+    <div className="flex">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => !disabled && setRating(star)}
+          className={`${!disabled ? 'hover:text-yellow-400 cursor-pointer' : 'cursor-default'} text-gray-400`}
+          disabled={disabled}
+        >
+          <StarIcon
+            className={`h-8 w-8 ${(rating || 0) >= star ? 'text-yellow-400 fill-yellow-400' : ''}`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function RatingModal({ isOpen, onClose, onSubmit, currentRating }) {
+  const [rating, setRating] = useState(currentRating || 0);
+
+  const handleSubmit = () => {
+    onSubmit(rating);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Rate this course</h3>
+        <div className="flex justify-center mb-6">
+          <RatingStars rating={rating} setRating={setRating} />
+        </div>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={rating === 0}
+            className={`px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 ${rating === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            Submit Rating
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CourseDetail() {
   const { user } = useAuth();
   const role = user?.role;
@@ -79,6 +137,12 @@ function CourseDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedContentId, setSelectedContentId] = useState(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+  const [averageRating, setAverageRating] = useState(0);
+  const [feedback , setFeedback] = useState('');
+
+const [showFeedbackSection, setShowFeedbackSection] = useState(false);
 
   useEffect(() => {
     const fetchCourseData = async () => {
@@ -110,10 +174,18 @@ function CourseDetail() {
           } catch (err) {
             console.error('Error fetching enrollment:', err);
           }
+
+          // Fetch user's existing rating
+          const ratingRes = await axios.get(
+            `http://localhost:8080/courses/${id}/user-rating`,
+            { withCredentials: true }
+          );
+          setUserRating(ratingRes.data.rating || 0);
         }
 
         setCourse(courseRes.data);
         setContent(contentRes.data);
+        setAverageRating(courseRes.data.average_rating || 0);
       } catch (err) {
         console.error('Error fetching course data:', err);
         setError('Failed to load course. Please try again later.');
@@ -124,6 +196,25 @@ function CourseDetail() {
 
     fetchCourseData();
   }, [id, role]);
+
+  useEffect(() => {
+  if (role === 'student') {
+    const fetchFeedback = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:8080/courses/${id}/feedback`,
+          { withCredentials: true }
+        );
+        if (response.data.feedback) {
+          setFeedback(response.data.feedback);
+        }
+      } catch (err) {
+        console.error('Error fetching feedback:', err);
+      }
+    };
+    fetchFeedback();
+  }
+}, [id, role]);
 
   const updateProgress = async (newProgress) => {
     try {
@@ -143,6 +234,15 @@ function CourseDetail() {
     const newProgress = Math.min(((progress * totalItems) + 1) / totalItems * 100, 100);
     updateProgress(newProgress);
   };
+const submitFeedback = async () => {
+  try {
+    await axios.put(`http://localhost:8080/courses/${id}/feedback`, { feedback } , {withCredentials:true});
+    alert("Feedback submitted successfully!");
+  } catch (error) {
+    console.error("Failed to submit feedback:", error.message);
+    alert("Failed to submit feedback.");
+  }
+};
 
   const handleDeleteContent = async () => {
     try {
@@ -157,6 +257,22 @@ function CourseDetail() {
       setError('Failed to delete content. Please try again.');
     } finally {
       setShowDeleteModal(false);
+    }
+  };
+
+  const handleRateCourse = async (rating) => {
+    try {
+      const response = await axios.put(
+        `http://localhost:8080/courses/${id}/rate`,
+        { rating },
+        { withCredentials: true }
+      );
+
+      setUserRating(rating);
+      setAverageRating(response.data.newAverage);
+    } catch (err) {
+      console.error('Error rating course:', err);
+      setError('Failed to submit rating. Please try again.');
     }
   };
 
@@ -272,22 +388,94 @@ function CourseDetail() {
               )}
             </div>
 
-            {role === 'student' && (
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-medium text-gray-900">Your Progress</h3>
-                  <span className="text-sm font-medium text-indigo-600">
-                    {Math.round(progress)}% Complete
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-indigo-600 h-2.5 rounded-full"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
+            {/* Rating Section */}
+          {role === 'student' && (
+  <div className="mt-6 space-y-4">
+    {/* Rating Section */}
+    <div className="flex items-center justify-between">
+      <h3 className="text-sm font-medium text-gray-900">Course Rating</h3>
+      <span className="text-sm text-gray-500">
+        {userRating ? `${userRating.toFixed(1)}/5` : 'Not rated yet'}
+      </span>
+    </div>
+
+    <div className="flex items-center space-x-4">
+      <RatingStars rating={userRating} disabled={true} />
+      <button
+        onClick={() => setShowRatingModal(true)}
+        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+      >
+        {userRating > 0 ? 'Update your rating' : 'Rate this course'}
+      </button>
+    </div>
+
+    {/* Progress Section */}
+    <div className="flex items-center justify-between mt-4">
+      <h3 className="text-sm font-medium text-gray-900">Your Progress</h3>
+      <span className="text-sm font-medium text-indigo-600">
+        {Math.round(progress)}% Complete
+      </span>
+    </div>
+
+    <div className="w-full bg-gray-200 rounded-full h-2.5">
+      <div
+        className="bg-indigo-600 h-2.5 rounded-full"
+        style={{ width: `${progress}%` }}
+      ></div>
+    </div>
+
+    {/* Feedback Section (Collapsible) */}
+    <div className="pt-4 border-t border-gray-200">
+  <div className="flex items-center justify-between">
+    <h3 className="text-sm font-medium text-gray-900">Your Feedback</h3>
+    <button
+      onClick={() => setShowFeedbackSection(!showFeedbackSection)}
+      className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+    >
+      {showFeedbackSection ? 'Hide' : feedback ? 'Edit feedback' : 'Add feedback'}
+    </button>
+  </div>
+
+  {/* Show existing feedback when collapsed */}
+  {!showFeedbackSection && feedback && (
+    <div className="mt-3 p-3 bg-gray-50 rounded-md">
+      <p className="text-sm text-gray-700">{feedback}</p>
+    </div>
+  )}
+
+  {/* Feedback form when expanded */}
+  {showFeedbackSection && (
+    <div className="mt-4 space-y-3">
+      <textarea
+        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
+        placeholder="Share your thoughts about this course..."
+        rows={4}
+        value={feedback}
+        onChange={(e) => setFeedback(e.target.value)}
+      />
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={() => setShowFeedbackSection(false)}
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submitFeedback}
+          disabled={!feedback.trim()}
+          className={`px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 ${
+            !feedback.trim() ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {feedback ? 'Update Feedback' : 'Submit Feedback'}
+        </button>
+      </div>
+    </div>
+  )}
+</div>
+  </div>
+)}
+
           </div>
         </div>
 
@@ -328,7 +516,7 @@ function CourseDetail() {
               View Quizzes
             </button>
             <button
-              onClick={() => navigate(`/course/${id}/assignments`)}
+              onClick={() => navigate(`/course/${id}/assignment`)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
             >
               <DocumentTextIcon className="h-4 w-4 mr-2" />
@@ -423,6 +611,12 @@ function CourseDetail() {
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         message="Content deleted successfully!"
+      />
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        onSubmit={handleRateCourse}
+        currentRating={userRating}
       />
     </div>
   );
