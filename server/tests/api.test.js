@@ -77,6 +77,12 @@ test('the enrolled-courses list carries the instructor name', async () => {
   expect(mine.body[0]).toMatchObject({ id: courseId, instructor_name: names.teacher });
 });
 
+test('available courses list includes description and instructor', async () => {
+  const free = await outsider.get('/courses/unenrolledCourses');
+  const mine = free.body.find(c => c.id === courseId);
+  expect(mine).toMatchObject({ title: 'Test course', description: 'About testing', instructor_name: names.teacher });
+});
+
 test('instructor analytics summarise enrolments, rating and revenue', async () => {
   const a = await teacher.get('/analytics/instructor');
   expect(a.status).toBe(200);

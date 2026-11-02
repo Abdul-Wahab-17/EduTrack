@@ -30,12 +30,12 @@ async function seed() {
   const ana = await addUser('demo_student', 'demo1234', 'student', 'Learning to build for the web.');
   const bilal = await addUser('bilal', 'demo1234', 'student', 'Interested in data.');
 
-  const course = async (title, description, price, weeks, category) =>
-    (await q('INSERT INTO courses (instructor_id, title, description, price, duration_weeks, status, category) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [instructor, title, description, price, weeks, 'published', category])).insertId;
-  const web = await course('Modern Web Development', 'HTML, CSS and JavaScript from the ground up, then React and a Node API.', 49.0, 8, 'Programming');
-  const sql = await course('SQL for Analysts', 'Query, join and aggregate real datasets with MySQL.', 29.0, 4, 'Data');
-  const ml = await course('Machine Learning Foundations', 'Regression, classification and model evaluation with scikit-learn.', 79.0, 10, 'Data');
+  const course = async (title, description, price, weeks, category, image) =>
+    (await q('INSERT INTO courses (instructor_id, title, description, price, duration_weeks, status, category, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [instructor, title, description, price, weeks, 'published', category, image])).insertId;
+  const web = await course('Modern Web Development', 'HTML, CSS and JavaScript from the ground up, then React and a Node API.', 49.0, 8, 'Programming', '/courses/web.svg');
+  const sql = await course('SQL for Analysts', 'Query, join and aggregate real datasets with MySQL.', 29.0, 4, 'Data', '/courses/sql.svg');
+  const ml = await course('Machine Learning Foundations', 'Regression, classification and model evaluation with scikit-learn.', 79.0, 10, 'Data', '/courses/ml.svg');
 
   const enrol = (student, c, status, progress, rating, feedback, daysAgo) =>
     q('INSERT INTO enrolledcourses (student_id, course_id, status, progress, rating, feedback, enrolled_at) VALUES (?, ?, ?, ?, ?, ?, NOW() - INTERVAL ? DAY)',

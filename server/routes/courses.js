@@ -270,9 +270,15 @@ router.get('/unenrolledCourses', ensureAuthenticated, ensureStudent, (req, res) 
   const query = `
     SELECT
       c.course_id AS id,
-      c.title AS title
+      c.title AS title,
+      c.description AS description,
+      c.image_url AS image_url,
+      c.price AS price,
+      u.username AS instructor_name
     FROM
       courses c
+    JOIN instructors i ON i.instructor_id = c.instructor_id
+    JOIN users u ON u.user_id = i.user_id
     WHERE
       c.course_id NOT IN (
         SELECT f.course_id
@@ -294,7 +300,11 @@ router.get('/unenrolledCourses', ensureAuthenticated, ensureStudent, (req, res) 
     // Formatting response
     const formattedResult = result.map(course => ({
       id: course.id,
-      title: course.title
+      title: course.title,
+      description: course.description,
+      image_url: course.image_url,
+      price: course.price,
+      instructor_name: course.instructor_name
     }));
 
     res.status(200).json(formattedResult);

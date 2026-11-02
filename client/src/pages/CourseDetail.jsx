@@ -487,39 +487,6 @@ const submitFeedback = async () => {
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Content
             </button>
-            <button
-              onClick={() => navigate(`/course/${id}/quiz`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <AcademicCapIcon className="h-4 w-4 mr-2" />
-              Quiz Management
-            </button>
-            <button
-              onClick={() => navigate(`/course/${id}/assignments`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-            >
-              <DocumentTextIcon className="h-4 w-4 mr-2" />
-              Assignment Management
-            </button>
-          </div>
-        )}
-
-        {role === 'student' && (
-          <div className="flex flex-wrap gap-3 mb-8">
-            <button
-              onClick={() => navigate(`/course/${id}/quizzes`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              <AcademicCapIcon className="h-4 w-4 mr-2" />
-              View Quizzes
-            </button>
-            <button
-              onClick={() => navigate(`/course/${id}/assignment`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-            >
-              <DocumentTextIcon className="h-4 w-4 mr-2" />
-              View Assignments
-            </button>
           </div>
         )}
 
