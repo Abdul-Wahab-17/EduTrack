@@ -15,6 +15,7 @@ import {
   AcademicCapIcon,
   StarIcon
 } from '@heroicons/react/24/outline';
+import { API_URL } from '../api';
 
 function ConfirmationModal({ isOpen, onConfirm, onCancel, message }) {
   if (!isOpen) return null;
@@ -95,10 +96,17 @@ function RatingModal({ isOpen, onClose, onSubmit, currentRating }) {
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Rate this course">
       <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Rate this course</h3>
         <div className="flex justify-center mb-6">
@@ -139,12 +147,15 @@ function CourseDetail() {
   const [selectedContentId, setSelectedContentId] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
-  const [averageRating, setAverageRating] = useState(0);
   const [feedback , setFeedback] = useState('');
+  const [notEnrolled, setNotEnrolled] = useState(null); // null until we know; students only
+  const [notice, setNotice] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
 const [showFeedbackSection, setShowFeedbackSection] = useState(false);
 
   useEffect(() => {
+    if (!role) return; // wait for the login check; the request depends on who is asking
     const fetchCourseData = async () => {
       setIsLoading(true);
       setError(null);
@@ -154,38 +165,32 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
 
         if (role === 'instructor') {
           [courseRes, contentRes] = await Promise.all([
-            axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true }),
-            axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
+            axios.get(`${API_URL}/courses/course/${id}`, { withCredentials: true }),
+            axios.get(`${API_URL}/content/${id}`, { withCredentials: true })
           ]);
         } else if (role === 'student') {
-          [courseRes, contentRes] = await Promise.all([
-            axios.get(`http://localhost:8080/courses/enrolled/${id}`, { withCredentials: true }),
-            axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
-          ]);
-
-          try {
-            const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, {
-              withCredentials: true
-            });
-            const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
-            if (enrollment?.progress) {
-              setProgress(enrollment.progress);
-            }
-          } catch (err) {
-            console.error('Error fetching enrollment:', err);
+          const enrolledRes = await axios.get(`${API_URL}/courses/enrolledCourses`, { withCredentials: true });
+          const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
+          if (!enrollment) {
+            // Not enrolled: show a preview with an Enroll button instead of requesting members-only data
+            const preview = await axios.get(`${API_URL}/courses/preview/${id}`, { withCredentials: true });
+            setCourse(preview.data);
+            setContent([]);
+            setNotEnrolled(true);
+            return;
           }
-
-          // Fetch user's existing rating
-          const ratingRes = await axios.get(
-            `http://localhost:8080/courses/${id}/user-rating`,
-            { withCredentials: true }
-          );
+          setNotEnrolled(false);
+          setProgress(enrollment.progress || 0);
+          [courseRes, contentRes] = await Promise.all([
+            axios.get(`${API_URL}/courses/enrolled/${id}`, { withCredentials: true }),
+            axios.get(`${API_URL}/content/${id}`, { withCredentials: true })
+          ]);
+          const ratingRes = await axios.get(`${API_URL}/courses/${id}/user-rating`, { withCredentials: true });
           setUserRating(ratingRes.data.rating || 0);
         }
 
         setCourse(courseRes.data);
         setContent(contentRes.data);
-        setAverageRating(courseRes.data.average_rating || 0);
       } catch (err) {
         console.error('Error fetching course data:', err);
         setError('Failed to load course. Please try again later.');
@@ -195,14 +200,14 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
     };
 
     fetchCourseData();
-  }, [id, role]);
+  }, [id, role, reloadKey]);
 
   useEffect(() => {
-  if (role === 'student') {
+  if (role === 'student' && notEnrolled === false) {
     const fetchFeedback = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:8080/courses/${id}/feedback`,
+          `${API_URL}/courses/${id}/feedback`,
           { withCredentials: true }
         );
         if (response.data.feedback) {
@@ -214,12 +219,12 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
     };
     fetchFeedback();
   }
-}, [id, role]);
+}, [id, role, notEnrolled]);
 
   const updateProgress = async (newProgress) => {
     try {
       await axios.put(
-        `http://localhost:8080/courses/course/${id}/progress`,
+        `${API_URL}/data/course/${id}/progress`,
         { progress: newProgress },
         { withCredentials: true }
       );
@@ -236,18 +241,18 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
   };
 const submitFeedback = async () => {
   try {
-    await axios.put(`http://localhost:8080/courses/${id}/feedback`, { feedback } , {withCredentials:true});
-    alert("Feedback submitted successfully!");
+    await axios.put(`${API_URL}/courses/${id}/feedback`, { feedback } , {withCredentials:true});
+    setNotice('Feedback saved.');
   } catch (error) {
     console.error("Failed to submit feedback:", error.message);
-    alert("Failed to submit feedback.");
+    setNotice('Could not save your feedback. Please try again.');
   }
 };
 
   const handleDeleteContent = async () => {
     try {
       await axios.delete(
-        `http://localhost:8080/content/remove/${id}/${selectedContentId}`,
+        `${API_URL}/content/remove/${id}/${selectedContentId}`,
         { withCredentials: true }
       );
       setContent(content.filter(item => item.content_id !== selectedContentId));
@@ -260,16 +265,26 @@ const submitFeedback = async () => {
     }
   };
 
+  const enroll = async () => {
+    try {
+      await axios.post(`${API_URL}/courses/enroll`, { course_id: parseInt(id) }, { withCredentials: true });
+      setNotEnrolled(null);
+      setReloadKey((n) => n + 1);
+    } catch (err) {
+      console.error('Error enrolling:', err);
+      setError('Could not enroll. Please try again.');
+    }
+  };
+
   const handleRateCourse = async (rating) => {
     try {
-      const response = await axios.put(
-        `http://localhost:8080/courses/${id}/rate`,
+      await axios.put(
+        `${API_URL}/courses/${id}/rate`,
         { rating },
         { withCredentials: true }
       );
 
       setUserRating(rating);
-      setAverageRating(response.data.newAverage);
     } catch (err) {
       console.error('Error rating course:', err);
       setError('Failed to submit rating. Please try again.');
@@ -389,7 +404,15 @@ const submitFeedback = async () => {
             </div>
 
             {/* Rating Section */}
-          {role === 'student' && (
+          {role === 'student' && notEnrolled && (
+            <div className="mt-6 rounded-md bg-indigo-50 p-4">
+              <p className="text-sm text-indigo-900">Enroll to see the course content, track your progress and leave feedback.</p>
+              <button onClick={enroll} className="mt-3 inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                Enroll now
+              </button>
+            </div>
+          )}
+          {role === 'student' && notEnrolled === false && (
   <div className="mt-6 space-y-4">
     {/* Rating Section */}
     <div className="flex items-center justify-between">
@@ -428,6 +451,7 @@ const submitFeedback = async () => {
     <div className="pt-4 border-t border-gray-200">
   <div className="flex items-center justify-between">
     <h3 className="text-sm font-medium text-gray-900">Your Feedback</h3>
+    {notice && <p role="status" className="text-sm text-green-700">{notice}</p>}
     <button
       onClick={() => setShowFeedbackSection(!showFeedbackSection)}
       className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
@@ -488,39 +512,6 @@ const submitFeedback = async () => {
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Content
-            </button>
-            <button
-              onClick={() => navigate(`/course/${id}/quiz`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <AcademicCapIcon className="h-4 w-4 mr-2" />
-              Quiz Management
-            </button>
-            <button
-              onClick={() => navigate(`/course/${id}/assignments`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-            >
-              <DocumentTextIcon className="h-4 w-4 mr-2" />
-              Assignment Management
-            </button>
-          </div>
-        )}
-
-        {role === 'student' && (
-          <div className="flex flex-wrap gap-3 mb-8">
-            <button
-              onClick={() => navigate(`/course/${id}/quizzes`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              <AcademicCapIcon className="h-4 w-4 mr-2" />
-              View Quizzes
-            </button>
-            <button
-              onClick={() => navigate(`/course/${id}/assignment`)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-            >
-              <DocumentTextIcon className="h-4 w-4 mr-2" />
-              View Assignments
             </button>
           </div>
         )}

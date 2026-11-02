@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../api';
 
 function CourseList() {
   const { user } = useAuth();
@@ -19,12 +20,12 @@ function CourseList() {
       setIsLoading(true);
       try {
         if (role === 'instructor') {
-          const response = await axios.get('http://localhost:8080/courses/ownedCourses', { withCredentials: true });
+          const response = await axios.get(`${API_URL}/courses/ownedCourses`, { withCredentials: true });
           setCourses(response.data);
         } else if (role === 'student') {
           const [enrolledRes, unenrolledRes] = await Promise.all([
-            axios.get('http://localhost:8080/courses/enrolledCourses', { withCredentials: true }),
-            axios.get('http://localhost:8080/courses/unenrolledCourses', { withCredentials: true })
+            axios.get(`${API_URL}/courses/enrolledCourses`, { withCredentials: true }),
+            axios.get(`${API_URL}/courses/unenrolledCourses`, { withCredentials: true })
           ]);
           setEnrolledCourses(enrolledRes.data);
           setUnenrolledCourses(unenrolledRes.data);
@@ -42,10 +43,10 @@ function CourseList() {
 
   const handleEnroll = async (courseId) => {
     try {
-      await axios.post('http://localhost:8080/courses/enroll', { course_id: courseId }, { withCredentials: true });
+      await axios.post(`${API_URL}/courses/enroll`, { course_id: courseId }, { withCredentials: true });
       const [enrolledRes, unenrolledRes] = await Promise.all([
-        axios.get('http://localhost:8080/courses/enrolledCourses', { withCredentials: true }),
-        axios.get('http://localhost:8080/courses/unenrolledCourses', { withCredentials: true })
+        axios.get(`${API_URL}/courses/enrolledCourses`, { withCredentials: true }),
+        axios.get(`${API_URL}/courses/unenrolledCourses`, { withCredentials: true })
       ]);
       setEnrolledCourses(enrolledRes.data);
       setUnenrolledCourses(unenrolledRes.data);
@@ -123,11 +124,11 @@ function CourseList() {
                       <div key={course.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
                         <div className="h-48 bg-gray-200 relative">
                           <img
-                            src={course.image_url || 'https://via.placeholder.com/400x225'}
+                            src={course.image_url || '/placeholder-course.svg'}
                             alt={course.title}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.target.src = 'https://via.placeholder.com/400x225';
+                              e.target.src = '/placeholder-course.svg';
                             }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
@@ -210,11 +211,11 @@ function CourseList() {
                       <div key={course.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
                         <div className="h-48 bg-gray-200 relative">
                           <img
-                            src={course.image_url || 'https://via.placeholder.com/400x225'}
+                            src={course.image_url || '/placeholder-course.svg'}
                             alt={course.title}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.target.src = 'https://via.placeholder.com/400x225';
+                              e.target.src = '/placeholder-course.svg';
                             }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
@@ -285,11 +286,11 @@ function CourseList() {
                 <div key={course.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   <div className="h-48 bg-gray-200 relative">
                     <img
-                      src={course.image_url || 'https://via.placeholder.com/400x225'}
+                      src={course.image_url || '/placeholder-course.svg'}
                       alt={course.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/400x225';
+                        e.target.src = '/placeholder-course.svg';
                       }}
                     />
                     <div className="absolute top-2 right-2">

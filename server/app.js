@@ -12,22 +12,24 @@ const MySQLStore = require('express-mysql-session')(session);
 
 var authRouter = require('./routes/auth');
 var dataRouter = require(`./routes/data`);
-var messageRouter = require(`./routes/messages`);
+var analyticsRouter = require('./routes/analytics');
 var courseRouter = require(`./routes/courses`);
 var contentRouter = require(`./routes/content`);
-var quizRouter = require(`./routes/quizzes`);
-var assignmentRouter = require(`./routes/assignments`);
-var analyticsRouter = require(`./routes/analytics`);
 
 var app = express();
 
 
 app.use(express.static(path.join(__dirname, 'public')));
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('SESSION_SECRET must be set in production');
+}
+
 app.use(session({
-  secret: 'mySecretKey',
+  secret: process.env.SESSION_SECRET || 'dev-only-secret-change-me',
   resave: false ,
   saveUninitialized: false,
-  store: new MySQLStore({} , db)
+  store: new MySQLStore({}, db)
 }));
 app.use(passport.authenticate('session'));
 
@@ -36,7 +38,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: CLIENT_ORIGIN,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 }));
@@ -47,17 +49,14 @@ app.use((req,res,next)=>{
   res.locals.user = req.user || null;
   next();
 })
-app.options('*', cors({ origin: 'http://localhost:3000', credentials: true }));
+app.options('*', cors({ origin: CLIENT_ORIGIN, credentials: true }));
 
 
 app.use('/auth', authRouter);
 app.use(`/data` , dataRouter);
-app.use('/api', messageRouter);
+app.use('/analytics', analyticsRouter);
 app.use(`/courses` , courseRouter);
 app.use(`/content` , contentRouter);
-app.use(`/quizzes` , quizRouter);
-app.use(`/assignments` , assignmentRouter);
-app.use(`/analytics` , analyticsRouter);
 
 app.use(function(req, res, next) {
   next(createError(404, 'Page Not Found'));

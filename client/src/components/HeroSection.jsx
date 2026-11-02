@@ -9,7 +9,7 @@ export default function HeroSection() {
         <div className="absolute inset-0">
           <img
             className="w-full h-full object-cover opacity-40"
-            src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+            src="/hero.svg"
             alt="Students learning together"
           />
           <div className="absolute inset-0 bg-indigo-800 mix-blend-multiply" aria-hidden="true" />

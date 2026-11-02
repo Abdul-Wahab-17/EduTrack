@@ -62,7 +62,7 @@ router.get('/instructor/feedback', ensureAuthenticated, ensureInstructor, (req, 
             ec.updated_at as feedback_date,
             c.title as course_title,
             u.username as student_name
-          FROM enrolledCourses ec
+          FROM enrolledcourses ec
           JOIN courses c ON ec.course_id = c.course_id
           JOIN students s ON ec.student_id = s.student_id
           JOIN users u ON s.user_id = u.user_id
@@ -84,6 +84,24 @@ router.get('/instructor/feedback', ensureAuthenticated, ensureInstructor, (req, 
   });
 });
 
+// What a student may see of a course before enrolling: public details of published courses only
+router.get('/preview/:courseId', ensureAuthenticated, ensureStudent, (req, res) => {
+  db.query(
+    `SELECT c.course_id AS id, c.title, c.description, c.price, c.duration_weeks, c.status, c.created_at,
+            i.instructor_id, u.username AS instructor_name, u.bio AS instructor_bio
+     FROM courses c
+     JOIN instructors i ON c.instructor_id = i.instructor_id
+     JOIN users u ON i.user_id = u.user_id
+     WHERE c.course_id = ? AND c.status = 'published'`,
+    [req.params.courseId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      if (result.length === 0) return res.status(404).json({ error: 'Course not found' });
+      res.json(result[0]);
+    }
+  );
+});
+
 router.get('/:courseId/user-rating', ensureStudent, (req, res) => {
   const { courseId } = req.params;
   const userId = req.user.id;
@@ -96,7 +114,7 @@ router.get('/:courseId/user-rating', ensureStudent, (req, res) => {
 
     // Fetch the user's rating for the course
     db.query(
-      `SELECT rating FROM enrolledCourses WHERE course_id = ? AND student_id = ?`,
+      `SELECT rating FROM enrolledcourses WHERE course_id = ? AND student_id = ?`,
       [courseId, studentId],
       (err, result) => {
         if (err) {
@@ -128,7 +146,7 @@ router.put('/:courseId/rate', ensureStudent, (req, res) => {
 
     // Step 2: Check enrollment
     db.query(
-      'SELECT * FROM enrolledCourses WHERE course_id = ? AND student_id = ?',
+      'SELECT * FROM enrolledcourses WHERE course_id = ? AND student_id = ?',
       [courseId, studentId],
       (err, enrollment) => {
         if (err) {
@@ -142,7 +160,7 @@ router.put('/:courseId/rate', ensureStudent, (req, res) => {
 
         // Step 3: Update the rating in the enrolledCourses table
         db.query(
-          'UPDATE enrolledCourses SET rating = ? WHERE course_id = ? AND student_id = ?',
+          'UPDATE enrolledcourses SET rating = ? WHERE course_id = ? AND student_id = ?',
           [rating, courseId, studentId],
           (err) => {
             if (err) {
@@ -174,7 +192,7 @@ router.get('/:courseId/feedback', ensureStudent, (req, res) => {
 
     // Fetch existing feedback
     db.query(
-      'SELECT feedback FROM enrolledCourses WHERE course_id = ? AND student_id = ?',
+      'SELECT feedback FROM enrolledcourses WHERE course_id = ? AND student_id = ?',
       [courseId, studentId],
       (err, result) => {
         if (err) {
@@ -211,7 +229,7 @@ router.put('/:courseId/feedback', ensureStudent, (req, res) => {
 
     // Update the feedback in enrolledCourses
     db.query(
-      'UPDATE enrolledCourses SET feedback = ? WHERE course_id = ? AND student_id = ?',
+      'UPDATE enrolledcourses SET feedback = ? WHERE course_id = ? AND student_id = ?',
       [feedback, courseId, studentId],
       (err) => {
         if (err) {
@@ -240,7 +258,7 @@ router.get(`/enrolledCourses`, ensureAuthenticated, ensureStudent, (req, res) =>
     FROM
       courses c
     JOIN instructors i ON c.instructor_id = i.instructor_id
-    JOIN enrolledCourses ec ON c.course_id = ec.course_id
+    JOIN enrolledcourses ec ON c.course_id = ec.course_id
     JOIN students s ON s.student_id = ec.student_id
     WHERE s.user_id = ?`;
 
@@ -254,7 +272,7 @@ router.get(`/enrolledCourses`, ensureAuthenticated, ensureStudent, (req, res) =>
     const formattedResult = result.map(course => ({
       id: course.id,
       title: course.title,
-      instructor_name: course.instructor_name,  // Sending instructor name
+      instructor_name: course.full_name,
       image_url: course.image_url,
       status: course.status,
       progress: course.progress
@@ -270,13 +288,19 @@ router.get('/unenrolledCourses', ensureAuthenticated, ensureStudent, (req, res) 
   const query = `
     SELECT
       c.course_id AS id,
-      c.title AS title
+      c.title AS title,
+      c.description AS description,
+      c.image_url AS image_url,
+      c.price AS price,
+      u.username AS instructor_name
     FROM
       courses c
+    JOIN instructors i ON i.instructor_id = c.instructor_id
+    JOIN users u ON u.user_id = i.user_id
     WHERE
       c.course_id NOT IN (
         SELECT f.course_id
-        FROM enrolledCourses f
+        FROM enrolledcourses f
         WHERE f.student_id = (
           SELECT s.student_id
           FROM students s
@@ -294,7 +318,11 @@ router.get('/unenrolledCourses', ensureAuthenticated, ensureStudent, (req, res) 
     // Formatting response
     const formattedResult = result.map(course => ({
       id: course.id,
-      title: course.title
+      title: course.title,
+      description: course.description,
+      image_url: course.image_url,
+      price: course.price,
+      instructor_name: course.instructor_name
     }));
 
     res.status(200).json(formattedResult);
@@ -391,72 +419,6 @@ router.get('/course/:courseId', ensureAuthenticated , ensureInstructor , ensureO
       }
     );
   });
-router.put('/:courseId/rate', ensureStudent, async (req, res) => {
-  try {
-    const { courseId } = req.params;
-       const  studentId  = req.user.id;
-    const { rating } = req.body;
-
-    // Validate rating
-    if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: 'Rating must be between 1 and 5' });
-    }
-
-    // Check enrollment
-    const enrollment = await db.query(
-      'SELECT * FROM enrollment WHERE course_id = $1 AND student_id = $2',
-      [courseId, studentId]
-    );
-
-    if (enrollment.rows.length === 0) {
-      return res.status(403).json({ message: 'You must be enrolled to rate this course' });
-    }
-
-    // Update rating
-    await db.query(
-      'UPDATE enrollment SET course_rating = $1 WHERE course_id = $2 AND student_id = $3',
-      [rating, courseId, studentId]
-    );
-
-    // Update course average rating
-    await db.query(`
-      UPDATE courses
-      SET average_rating = (
-        SELECT AVG(course_rating)
-        FROM enrollment
-        WHERE course_id = $1 AND course_rating IS NOT NULL
-      )
-      WHERE id = $1
-    `, [courseId]);
-
-    res.json({
-      message: 'Course rated successfully',
-      newAverage: (await db.query('SELECT average_rating FROM courses WHERE id = $1', [courseId])).rows[0].average_rating
-    });
-  } catch (error) {
-    console.error('Error rating course:', error);
-    res.status(500).json({ message: 'Failed to rate course' });
-  }
-});
-
-// Add this to your courses routes
-router.get('/:courseId/user-rating', ensureStudent, async (req, res) => {
-  try {
-    const { courseId } = req.params;
-    const  studentId  = req.user.id;
-    const result = await db.query(
-      `SELECT rating as rating FROM enrolledCourses WHERE course_id = ${courseId} AND student_id = ${studentId}`,
-      [courseId, studentId]
-    );
-
-    res.json({ rating:  (result[0] ? result.rows[0]?.rating : 5 )});
-  } catch (error) {
-    console.error('Error fetching user rating:', error);
-    res.status(500).json({ message: 'Failed to fetch user rating' });
-  }
-});
-
-
 router.get('/ownedCourses', ensureAuthenticated, ensureInstructor, (req, res) => {
   const id = req.user.id; // Assuming `instructor_id` is part of `req.user`
 
@@ -483,7 +445,7 @@ router.get('/ownedCourses', ensureAuthenticated, ensureInstructor, (req, res) =>
     const userId = req.user.id;
 
     // Query to get the instructor_id from the user_id
-    const instructorQuery = 'SELECT instructor_id FROM Instructors WHERE user_id = ?';
+    const instructorQuery = 'SELECT instructor_id FROM instructors WHERE user_id = ?';
 
     db.query(instructorQuery, [userId], (err, results) => {
       if (err) {
@@ -513,7 +475,7 @@ router.get('/ownedCourses', ensureAuthenticated, ensureInstructor, (req, res) =>
 
       // Prepare the insert query
       const insertQuery = `
-        INSERT INTO Courses (
+        INSERT INTO courses (
           instructor_id,
           title,
           description,

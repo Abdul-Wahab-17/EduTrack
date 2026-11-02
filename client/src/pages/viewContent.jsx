@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../api';
 
 function ViewContent() {
   const { courseId, contentId } = useParams();
@@ -12,7 +13,7 @@ function ViewContent() {
     const fetchContentData = async () => {
       setIsLoading(true);
       try {
-        const res = await axios.get(`http://localhost:8080/content/view/${contentId}`, { withCredentials: true });
+        const res = await axios.get(`${API_URL}/content/view/${contentId}`, { withCredentials: true });
         setContent(res.data);
       } catch (err) {
         console.error('Error fetching content:', err);

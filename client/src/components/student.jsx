@@ -4,22 +4,19 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/navbar";
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { API_URL } from '../api';
+import Avatar from './Avatar';
+import ProfileModal from './ProfileModal';
 
 export default function StudentDashboard() {
 
-const {user} = useAuth();
+const { user } = useAuth();
 
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [student, setStudent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showEditForm, setShowEditForm] = useState(false);
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    full_name: "",
-    bio: "",
-    country: "",
-    profile_picture_url: "",
-  });
 
 
   useEffect(() => {
@@ -28,18 +25,12 @@ const {user} = useAuth();
         
         setStudent(user);
       axios
-        .get('http://localhost:8080/courses/enrolledCourses', { withCredentials: true })
+        .get(`${API_URL}/courses/enrolledCourses`, { withCredentials: true })
         .then((enrollmentsResponse) => {
            
             setEnrolledCourses(enrollmentsResponse.data);
           
           
-          setFormData({
-            full_name: user.full_name,
-            bio: user.bio,
-            email: user.email,
-            profile_picture_url: user.profile_picture_url,
-          });
           
          
         })
@@ -59,33 +50,6 @@ const {user} = useAuth();
     setShowEditForm(true);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSaveProfile = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/users/update-profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      if (!response.ok) throw new Error('Failed to update profile');
-      
-      const updatedUser = await response.json();
-      setStudent(updatedUser);
-      setShowEditForm(false);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -103,21 +67,16 @@ const {user} = useAuth();
       <div className="container mx-auto px-4 py-8">
         {/* Student Profile Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center gap-6">
-            <img
-              src={student.profilePic}
-              alt={student.full_name}
-              className="w-24 h-24 rounded-full object-cover border-2 border-blue-500"
-            />
+          <div className="flex flex-wrap items-center gap-6">
+            <Avatar src={student.profilePic} name={student.displayName || student.username} className="w-24 h-24 border-2 border-blue-500 text-3xl" />
             <div>
               <h1 className="text-2xl font-bold text-gray-800">
-                {student.username}
+                {student.displayName || student.username}
               </h1>
-              <p className="text-gray-600">{student.country}</p>
               <p className="text-sm text-gray-500">
                 Member since {new Date(student.joinDate).toLocaleDateString()}
               </p>
-              <p className="text-sm text-gray-500">Email: {student.email}</p>
+              <p className="text-sm text-gray-500 break-all">Email: {student.email}</p>
             </div>
             <div className="ml-auto">
               <button
@@ -135,104 +94,7 @@ const {user} = useAuth();
         </div>
 
         {/* Edit Profile Modal */}
-        {showEditForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Edit Profile
-                </h2>
-                <button
-                  onClick={() => setShowEditForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bio
-                  </label>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    rows="3"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Profile Picture URL
-                  </label>
-                  <input
-                    type="text"
-                    name="profile_picture_url"
-                    value={formData.profile_picture_url}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowEditForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveProfile}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {showEditForm && <ProfileModal onClose={() => setShowEditForm(false)} />}
 
         {/* Dashboard Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

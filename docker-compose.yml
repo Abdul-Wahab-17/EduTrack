@@ -1,0 +1,47 @@
+# One command to try EduTrack:  docker compose up --build
+#   client  http://localhost:3000     api  http://localhost:8080
+# Demo logins (password demo1234): demo_instructor, demo_student
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-edutrack}
+    volumes:
+      - ./server/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - edutrack-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_PASSWORD:-edutrack}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  server:
+    build: ./server
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-edutrack}
+      DB_NAME: edutrack
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    depends_on:
+      - server
+    ports:
+      - "3000:80"
+
+volumes:
+  edutrack-data:

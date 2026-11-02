@@ -13,6 +13,9 @@ import {
 } from '@heroicons/react/24/outline';
 import CreateCourseForm from '../components/CreateCourseForm';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { API_URL } from '../api';
+import Avatar from './Avatar';
+import ProfileModal from './ProfileModal';
 
 
 const InstructorDashboard = () => {
@@ -33,7 +36,7 @@ const InstructorDashboard = () => {
   // Fetch courses function
   const fetchCourses = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/courses/ownedCourses', {
+      const response = await axios.get(`${API_URL}/courses/ownedCourses`, {
         withCredentials: true
       });
       setCourses(response.data);
@@ -48,7 +51,7 @@ const InstructorDashboard = () => {
   // Fetch analytics when analytics tab is active
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/analytics/instructor', {
+      const response = await axios.get(`${API_URL}/analytics/instructor`, {
         withCredentials: true
       });
       setAnalytics(response.data);
@@ -64,7 +67,7 @@ const InstructorDashboard = () => {
     setFeedbackError(null);
     try {
       const response = await axios.get(
-        'http://localhost:8080/courses/instructor/feedback',
+        `${API_URL}/courses/instructor/feedback`,
         { withCredentials: true }
       );
       setFeedbacks(response.data.feedback || []);
@@ -102,25 +105,6 @@ const InstructorDashboard = () => {
     setShowCreateForm(false);
   };
 
-  const handleProfileChange = () => {
-    // Profile change handler
-  };
-
-  const handleProfileImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Update profile image
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const saveProfile = () => {
-    setEditProfile(false);
-  };
-
   const renderStars = (rating) => {
     return Array(5).fill(0).map((_, i) => (
       <StarIcon
@@ -140,12 +124,6 @@ const InstructorDashboard = () => {
     }).format(amount);
   };
 
-  // Format date for charts
-  const formatChartDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('default', { month: 'short' });
-  };
-
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
@@ -157,11 +135,7 @@ const InstructorDashboard = () => {
           <div className="p-8 md:p-10">
             <div className="flex flex-col md:flex-row items-center">
               <div className="flex-shrink-0 mb-6 md:mb-0 md:mr-8 relative">
-                <img
-                  className="h-24 w-24 rounded-full border-4 border-white shadow-md"
-                  src={user.profilePic}
-                  alt="Instructor profile"
-                />
+                <Avatar src={user.profilePic} name={user.displayName || 'Instructor'} className="h-24 w-24 border-4 border-white shadow-md text-3xl" />
                 <button
                   onClick={() => setEditProfile(true)}
                   className="absolute bottom-0 right-0 bg-white p-1.5 rounded-full shadow-md hover:bg-gray-100"
@@ -170,7 +144,7 @@ const InstructorDashboard = () => {
                 </button>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">Welcome back, {user.username}!</h1>
+                <h1 className="text-3xl font-bold text-white">Welcome back, {user.displayName || user.username}!</h1>
                 <p className="mt-2 text-purple-100 max-w-lg">
                   {user.bio}
                 </p>
@@ -228,7 +202,7 @@ const InstructorDashboard = () => {
                   <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="h-48 w-full overflow-hidden">
                       <img
-                        src={course.image_url || 'https://via.placeholder.com/300x200'}
+                        src={course.image_url || '/placeholder-course.svg'}
                         alt={course.title}
                         className="w-full h-full object-cover"
                       />
@@ -505,97 +479,7 @@ const InstructorDashboard = () => {
           />
         )}
 
-        {/* Edit Profile Modal */}
-        {editProfile && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">Edit Profile</h2>
-                  <button
-                    onClick={() => setEditProfile(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex flex-col items-center">
-                    <div className="relative mb-4">
-                      <img
-                        className="h-24 w-24 rounded-full border-4 border-white shadow-md"
-                        src={user.profilePic}
-                        alt="Profile preview"
-                      />
-                      <label className="absolute bottom-0 right-0 bg-white p-1.5 rounded-full shadow-md hover:bg-gray-100 cursor-pointer">
-                        <PencilIcon className="h-4 w-4 text-indigo-600" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleProfileImageChange}
-                          className="sr-only"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={user.username}
-                      onChange={handleProfileChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={user.email}
-                      onChange={handleProfileChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Bio</label>
-                    <textarea
-                      name="bio"
-                      rows={4}
-                      value={user.bio}
-                      onChange={handleProfileChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                    />
-                  </div>
-
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setEditProfile(false)}
-                      className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={saveProfile}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                      Save Profile
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {editProfile && <ProfileModal onClose={() => setEditProfile(false)} />}
       </div>
     </div>
   );

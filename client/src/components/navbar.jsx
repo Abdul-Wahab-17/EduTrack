@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import '../index.css';
 import { AcademicCapIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../context/AuthContext';
+import Avatar from './Avatar';
 
 function Navbar() {
   const { user, isAuthenticated } = useAuth();
@@ -29,40 +30,39 @@ function Navbar() {
   }, [isOpen]);
 
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-white/90 backdrop-blur border-b border-gray-100 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <AcademicCapIcon className="h-8 w-8 text-indigo-600" />
-            <span className="ml-2 text-xl font-bold text-gray-900">EduLearn</span>
+            <span className="ml-2 text-xl font-bold text-gray-900 hidden sm:inline">EduTrack</span>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <Link to="/" className="text-gray-700 hover:text-indigo-600 px-3 py-2 text-sm font-medium">
+          <div className="flex items-center space-x-1 sm:space-x-4">
+            <Link to="/" className="text-gray-700 hover:text-indigo-600 px-2 sm:px-3 py-2 text-sm font-medium">
               Home
             </Link>
-            <Link to="/courses" className="text-gray-700 hover:text-indigo-600 px-3 py-2 text-sm font-medium">
+            <Link to="/courses" className="text-gray-700 hover:text-indigo-600 px-2 sm:px-3 py-2 text-sm font-medium">
               Courses
             </Link>
-            <Link to="/about" className="text-gray-700 hover:text-indigo-600 px-3 py-2 text-sm font-medium">
+            <Link to="/about" className="text-gray-700 hover:text-indigo-600 px-2 sm:px-3 py-2 text-sm font-medium">
               About
             </Link>
 
             {isAuthenticated ? (
-              <div className="ml-3 relative">
+              <div className="ml-1 sm:ml-3 relative">
                 <button
                   ref={profileButtonRef}
                   onClick={() => setIsOpen(!isOpen)}
-                  className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="flex items-center gap-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   id="user-menu"
                   aria-haspopup="true"
                 >
                   <span className="sr-only">Open user menu</span>
-                  <img
-                    className="h-8 w-8 rounded-full"
-                    src={user?.profilePic || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=128&h=128&q=80'}
-                    alt="User profile"
-                  />
+                  <Avatar src={user?.profilePic} name={user?.displayName || user?.username || 'User'} className="h-8 w-8 text-sm" />
+                  <span className="hidden sm:inline text-sm font-medium text-gray-700">
+                    {user?.username || 'Account'}
+                  </span>
                 </button>
 
                 {isOpen && (
@@ -92,12 +92,20 @@ function Navbar() {
                 )}
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition duration-300"
-              >
-                Login
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="text-gray-700 hover:text-indigo-600 px-2 sm:px-3 py-2 text-sm font-medium"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/login"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition duration-300"
+                >
+                  Get started
+                </Link>
+              </div>
             )}
           </div>
         </div>
