@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { API_URL } from '../api';
 
 export default function Login() {
   // Login form state
@@ -96,7 +97,7 @@ const handleRegisterSubmit = async (e) => {
       };
 
       await axios.post(
-        'http://localhost:8080/auth/register', // adjust URL if needed
+        `${API_URL}/auth/register`, // adjust URL if needed
         payload,
         { withCredentials: true } // important for session cookie
       );

@@ -9,9 +9,11 @@ const upload = multer({ storage: storage });
 var { ensureAuthenticated , ensureInstructor , ensureOwnership} = require(`../middleware/authMiddleware`);
 
 router.post('/upload/:id', ensureAuthenticated, ensureInstructor, upload.single('file'), (req, res) => {
-    console.log(req.body);
     const courseId = req.params.id;
     const file = req.file;
+    if (!file) {
+      return res.status(400).send('No file uploaded.');
+    }
     const fileName = req.body.file_name || file.originalname;
     const contentType = req.body.content_type || file.mimetype;
 
@@ -25,12 +27,10 @@ router.post('/upload/:id', ensureAuthenticated, ensureInstructor, upload.single(
         return res.status(500).send('Internal server error.');
       }
 
-      instructorId = result[0].instructor_id;
-
-      if (!file) {
-        console.log('No file uploaded.');
-        return res.status(400).send('No file uploaded.');
+      if (result.length === 0) {
+        return res.status(403).send('Not an instructor.');
       }
+      instructorId = result[0].instructor_id;
 
       // Check if the instructor is the owner of the course
       const query = 'SELECT instructor_id FROM courses WHERE course_id = ?';
@@ -60,7 +60,6 @@ router.post('/upload/:id', ensureAuthenticated, ensureInstructor, upload.single(
             return res.status(500).send('Error uploading file.');
           }
 
-          console.log('File uploaded and inserted into the database successfully!');
           res.status(200).send('File uploaded successfully!');
         });
       });
@@ -72,7 +71,7 @@ router.post('/upload/:id', ensureAuthenticated, ensureInstructor, upload.single(
 
     // First, verify the user has access to this course
     const userId = req.user.id;
-    const userType = req.user.user_type;
+    const userType = req.user.role;
 
     let accessCheckQuery;
     let accessCheckParams;
@@ -128,10 +127,19 @@ router.post('/upload/:id', ensureAuthenticated, ensureInstructor, upload.single(
 
 
 
-  router.get('/view/:contentId', (req, res) => {
+  router.get('/view/:contentId', ensureAuthenticated, (req, res) => {
     const contentId = req.params.contentId;
 
-    db.query('SELECT * FROM content WHERE content_id = ?', [contentId], (err, results) => {
+    // Only the course's instructor or a student enrolled in it may open its content
+    const access = `
+      SELECT ct.* FROM content ct
+      JOIN courses c ON c.course_id = ct.course_id
+      WHERE ct.content_id = ? AND (
+        EXISTS (SELECT 1 FROM instructors i WHERE i.instructor_id = c.instructor_id AND i.user_id = ?)
+        OR EXISTS (SELECT 1 FROM enrolledcourses e JOIN students s ON s.student_id = e.student_id
+                   WHERE e.course_id = c.course_id AND s.user_id = ?)
+      )`;
+    db.query(access, [contentId, req.user.id, req.user.id], (err, results) => {
       if (err) {
         return res.status(500).json({ error: 'Database query error' });
       }
@@ -158,10 +166,9 @@ router.post('/upload/:id', ensureAuthenticated, ensureInstructor, upload.single(
 
   router.delete(`/remove/:courseId/:contentId` , ensureAuthenticated , ensureInstructor , ensureOwnership, (req,res)=>{
     const contentId = req.params.contentId;
-   console.log(`heeeeeeeeeeeeeere`)
     db.query(`delete from content where content_id = ?` , [contentId] , (err , result)=>{
       if (err){ return res.status(500).send(err);}
-     res.status(200).send(`it worked`);
+     res.status(200).send(`Content removed`);
     })
   } )
 

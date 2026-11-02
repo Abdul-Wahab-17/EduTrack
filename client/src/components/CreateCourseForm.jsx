@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
+import { API_URL } from '../api';
 
 export default function CreateCourseForm({ onClose, courseToEdit }) {
   const [courseData, setCourseData] = useState({
@@ -51,7 +52,7 @@ export default function CreateCourseForm({ onClose, courseToEdit }) {
         image_url: courseData.image_url,
       };
   
-      const res = await axios.post('http://localhost:8080/courses/createcourse', payload, {
+      const res = await axios.post(`${API_URL}/courses/createcourse`, payload, {
         withCredentials: true,
       });
   

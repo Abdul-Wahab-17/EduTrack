@@ -17,8 +17,6 @@ passport.use(new localStrategy(function verify(username, password, cb) {
         }
 
         const row = results[0];
-        console.log(row);
-
         if (!row.password || !row.salt) {
             console.error("❌ Missing password or salt in database");
             return cb(new Error("Database missing required fields"));
@@ -42,7 +40,8 @@ passport.use(new localStrategy(function verify(username, password, cb) {
 
 passport.serializeUser(function(user, cb) {
     process.nextTick(function() {
-        cb(null, { id: user.user_id, username: user.username, role: user.user_type });
+        // login passes a DB row (user_id / user_type); register passes {id, role}
+        cb(null, { id: user.user_id ?? user.id, username: user.username, role: user.user_type ?? user.role });
     });
 });
 
@@ -54,7 +53,7 @@ passport.deserializeUser(function(user, cb) {
 });
 
 router.post('/login', passport.authenticate('local'), (req, res) => {
-    res.send('hiiiiiiiiiii');
+    res.json({ user: { id: req.user.id, username: req.user.username, role: req.user.role } });
 });
 
 router.post('/logout',ensureAuthenticated, (req, res) => {
@@ -77,22 +76,18 @@ router.post('/logout',ensureAuthenticated, (req, res) => {
 
 router.get('/check', (req, res) => {
     if (req.isAuthenticated()) {
-        console.log('user is authenticated ' + req.user.username + ' with the role: ' + req.user.role + ` with the id: ` + req.user.id);
-        res.json({ authenticated: true, user: req.user, role: req.user.user_type });
+        res.json({ authenticated: true, user: req.user, role: req.user.role });
     } else {
-        console.log('user is not authenticated');
         res.json({ authenticated: false });
     }
 });
 
 router.get('/role', ensureAuthenticated, (req, res) => {
-    console.log(req.user.role);
     res.send(req.user.role);
 });
 
 router.post('/register', (req, res, next) => {
     const { username, password, email, role , bio , profilePic } = req.body;
-    console.log(req.body);
     const query = 'INSERT INTO users (username, password, salt, email, user_type , display_name,bio,profile_picture_url) VALUES (?, ?, ?, ?, ? , ?,?,?)';
 
     db.query('SELECT * FROM users WHERE username = ?', [username], (err, results) => {
@@ -114,11 +109,11 @@ router.post('/register', (req, res, next) => {
                     if(role === `student`){
                         db.query( `insert into students (user_id , full_name ) values ( ${results.insertId} , ? )` , [username] , (err , result)=>{
                             if (err){
-                                db.query(`delete from users where user_id = ?` , [results.insertId] , (err,result)=>{
+                                return db.query(`delete from users where user_id = ?` , [results.insertId] , () => {
                                     res.status(500).send(`db error`);
-                                })
+                                });
                             }
-                          return   res.status(200).json( {user:user});
+                            return res.status(200).json( {user:user});
                         })
 
                     }
@@ -126,11 +121,11 @@ router.post('/register', (req, res, next) => {
                         db.query( `insert into instructors (user_id , full_name ) values ( ${results.insertId} , ? )` , [username ] , (err , result)=>{
 
                             if (err){
-                                db.query(`delete from users where user_id = ?` , [results.insertId] , (err,result)=>{
+                                return db.query(`delete from users where user_id = ?` , [results.insertId] , () => {
                                     res.status(500).send(`db error`);
-                                })
+                                });
                             }
-                          return   res.status(200).json( {user:user});
+                            return res.status(200).json( {user:user});
                         })
 
                     }

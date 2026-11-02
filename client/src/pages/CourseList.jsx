@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../api';
 
 function CourseList() {
   const { user } = useAuth();
@@ -19,12 +20,12 @@ function CourseList() {
       setIsLoading(true);
       try {
         if (role === 'instructor') {
-          const response = await axios.get('http://localhost:8080/courses/ownedCourses', { withCredentials: true });
+          const response = await axios.get(`${API_URL}/courses/ownedCourses`, { withCredentials: true });
           setCourses(response.data);
         } else if (role === 'student') {
           const [enrolledRes, unenrolledRes] = await Promise.all([
-            axios.get('http://localhost:8080/courses/enrolledCourses', { withCredentials: true }),
-            axios.get('http://localhost:8080/courses/unenrolledCourses', { withCredentials: true })
+            axios.get(`${API_URL}/courses/enrolledCourses`, { withCredentials: true }),
+            axios.get(`${API_URL}/courses/unenrolledCourses`, { withCredentials: true })
           ]);
           setEnrolledCourses(enrolledRes.data);
           setUnenrolledCourses(unenrolledRes.data);
@@ -42,10 +43,10 @@ function CourseList() {
 
   const handleEnroll = async (courseId) => {
     try {
-      await axios.post('http://localhost:8080/courses/enroll', { course_id: courseId }, { withCredentials: true });
+      await axios.post(`${API_URL}/courses/enroll`, { course_id: courseId }, { withCredentials: true });
       const [enrolledRes, unenrolledRes] = await Promise.all([
-        axios.get('http://localhost:8080/courses/enrolledCourses', { withCredentials: true }),
-        axios.get('http://localhost:8080/courses/unenrolledCourses', { withCredentials: true })
+        axios.get(`${API_URL}/courses/enrolledCourses`, { withCredentials: true }),
+        axios.get(`${API_URL}/courses/unenrolledCourses`, { withCredentials: true })
       ]);
       setEnrolledCourses(enrolledRes.data);
       setUnenrolledCourses(unenrolledRes.data);

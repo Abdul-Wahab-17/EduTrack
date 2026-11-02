@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../api';
 
 const AuthContext = createContext();
 
@@ -13,12 +14,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const authRes = await axios.get('http://localhost:8080/auth/check', {
+        const authRes = await axios.get(`${API_URL}/auth/check`, {
           withCredentials: true,
         });
 
         if (authRes.data.authenticated) {
-          const dataRes = await axios.get('http://localhost:8080/data', {
+          const dataRes = await axios.get(`${API_URL}/data`, {
             withCredentials: true,
           });
 
@@ -42,14 +43,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (formData) => {
-    await axios.post("http://localhost:8080/auth/login", formData, {
+    await axios.post(`${API_URL}/auth/login`, formData, {
       withCredentials: true,
     });
 
-    const authRes = await axios.get("http://localhost:8080/auth/check", {
+    const authRes = await axios.get(`${API_URL}/auth/check`, {
       withCredentials: true,
     });
-    const dataRes = await axios.get("http://localhost:8080/data", {
+    const dataRes = await axios.get(`${API_URL}/data`, {
       withCredentials: true,
     });
 
@@ -66,7 +67,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await axios.post("http://localhost:8080/auth/logout",{},  { withCredentials: true });
+    await axios.post(`${API_URL}/auth/logout`,{},  { withCredentials: true });
     setUser(null);
     navigate('/');
   };

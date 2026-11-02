@@ -28,6 +28,7 @@ function ensureOwnership( req , res , next){
 
         db.query(`select instructor_id from instructors where user_id = ?` , [userId] , (err, result)=>{
             if (err){ return res.status(500).send(`db error ` + err)}
+            if (result.length === 0) { return res.status(403).json({ message: 'Not an instructor' }); }
             const instructorid = result[0].instructor_id;
 
             db.query(`select instructor_id from courses where course_id = ? ` ,[courseId] , (err,result)=>{

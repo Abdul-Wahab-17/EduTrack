@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import CreateCourseForm from '../components/CreateCourseForm';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { API_URL } from '../api';
 
 
 const InstructorDashboard = () => {
@@ -33,7 +34,7 @@ const InstructorDashboard = () => {
   // Fetch courses function
   const fetchCourses = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/courses/ownedCourses', {
+      const response = await axios.get(`${API_URL}/courses/ownedCourses`, {
         withCredentials: true
       });
       setCourses(response.data);
@@ -48,7 +49,7 @@ const InstructorDashboard = () => {
   // Fetch analytics when analytics tab is active
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/analytics/instructor', {
+      const response = await axios.get(`${API_URL}/analytics/instructor`, {
         withCredentials: true
       });
       setAnalytics(response.data);
@@ -64,7 +65,7 @@ const InstructorDashboard = () => {
     setFeedbackError(null);
     try {
       const response = await axios.get(
-        'http://localhost:8080/courses/instructor/feedback',
+        `${API_URL}/courses/instructor/feedback`,
         { withCredentials: true }
       );
       setFeedbacks(response.data.feedback || []);
@@ -138,12 +139,6 @@ const InstructorDashboard = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
-  };
-
-  // Format date for charts
-  const formatChartDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('default', { month: 'short' });
   };
 
   if (loading) return <div>Loading...</div>;

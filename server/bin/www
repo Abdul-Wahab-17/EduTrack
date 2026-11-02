@@ -3,18 +3,7 @@
 var app = require('../app');
 var debug = require('debug')('learning:server');
 var http = require('http');
-var { Server } = require('socket.io');
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: 'http://localhost:3000', credentials: true }
-});
-
-const cors = require('cors');
-
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
-}));
 
 // --- server listen ---
 var port = normalizePort(process.env.PORT || '8080');

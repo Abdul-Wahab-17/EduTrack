@@ -15,6 +15,7 @@ import {
   AcademicCapIcon,
   StarIcon
 } from '@heroicons/react/24/outline';
+import { API_URL } from '../api';
 
 function ConfirmationModal({ isOpen, onConfirm, onCancel, message }) {
   if (!isOpen) return null;
@@ -139,7 +140,6 @@ function CourseDetail() {
   const [selectedContentId, setSelectedContentId] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
-  const [averageRating, setAverageRating] = useState(0);
   const [feedback , setFeedback] = useState('');
 
 const [showFeedbackSection, setShowFeedbackSection] = useState(false);
@@ -154,17 +154,17 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
 
         if (role === 'instructor') {
           [courseRes, contentRes] = await Promise.all([
-            axios.get(`http://localhost:8080/courses/course/${id}`, { withCredentials: true }),
-            axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
+            axios.get(`${API_URL}/courses/course/${id}`, { withCredentials: true }),
+            axios.get(`${API_URL}/content/${id}`, { withCredentials: true })
           ]);
         } else if (role === 'student') {
           [courseRes, contentRes] = await Promise.all([
-            axios.get(`http://localhost:8080/courses/enrolled/${id}`, { withCredentials: true }),
-            axios.get(`http://localhost:8080/content/${id}`, { withCredentials: true })
+            axios.get(`${API_URL}/courses/enrolled/${id}`, { withCredentials: true }),
+            axios.get(`${API_URL}/content/${id}`, { withCredentials: true })
           ]);
 
           try {
-            const enrolledRes = await axios.get(`http://localhost:8080/courses/enrolledCourses`, {
+            const enrolledRes = await axios.get(`${API_URL}/courses/enrolledCourses`, {
               withCredentials: true
             });
             const enrollment = enrolledRes.data.find(c => c.id === parseInt(id));
@@ -177,7 +177,7 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
 
           // Fetch user's existing rating
           const ratingRes = await axios.get(
-            `http://localhost:8080/courses/${id}/user-rating`,
+            `${API_URL}/courses/${id}/user-rating`,
             { withCredentials: true }
           );
           setUserRating(ratingRes.data.rating || 0);
@@ -185,7 +185,6 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
 
         setCourse(courseRes.data);
         setContent(contentRes.data);
-        setAverageRating(courseRes.data.average_rating || 0);
       } catch (err) {
         console.error('Error fetching course data:', err);
         setError('Failed to load course. Please try again later.');
@@ -202,7 +201,7 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
     const fetchFeedback = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:8080/courses/${id}/feedback`,
+          `${API_URL}/courses/${id}/feedback`,
           { withCredentials: true }
         );
         if (response.data.feedback) {
@@ -219,7 +218,7 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
   const updateProgress = async (newProgress) => {
     try {
       await axios.put(
-        `http://localhost:8080/courses/course/${id}/progress`,
+        `${API_URL}/courses/course/${id}/progress`,
         { progress: newProgress },
         { withCredentials: true }
       );
@@ -236,7 +235,7 @@ const [showFeedbackSection, setShowFeedbackSection] = useState(false);
   };
 const submitFeedback = async () => {
   try {
-    await axios.put(`http://localhost:8080/courses/${id}/feedback`, { feedback } , {withCredentials:true});
+    await axios.put(`${API_URL}/courses/${id}/feedback`, { feedback } , {withCredentials:true});
     alert("Feedback submitted successfully!");
   } catch (error) {
     console.error("Failed to submit feedback:", error.message);
@@ -247,7 +246,7 @@ const submitFeedback = async () => {
   const handleDeleteContent = async () => {
     try {
       await axios.delete(
-        `http://localhost:8080/content/remove/${id}/${selectedContentId}`,
+        `${API_URL}/content/remove/${id}/${selectedContentId}`,
         { withCredentials: true }
       );
       setContent(content.filter(item => item.content_id !== selectedContentId));
@@ -262,14 +261,13 @@ const submitFeedback = async () => {
 
   const handleRateCourse = async (rating) => {
     try {
-      const response = await axios.put(
-        `http://localhost:8080/courses/${id}/rate`,
+      await axios.put(
+        `${API_URL}/courses/${id}/rate`,
         { rating },
         { withCredentials: true }
       );
 
       setUserRating(rating);
-      setAverageRating(response.data.newAverage);
     } catch (err) {
       console.error('Error rating course:', err);
       setError('Failed to submit rating. Please try again.');

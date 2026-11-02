@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
+import { API_URL } from '../api';
 
 const UploadFile = () => {
   const { courseId } = useParams();
@@ -33,7 +34,7 @@ const UploadFile = () => {
     formData.append('content_type', contentType);
 
     try {
-      const response = await axios.post(`http://localhost:8080/content/upload/${courseId}`, formData, {
+      const response = await axios.post(`${API_URL}/content/upload/${courseId}`, formData, {
         withCredentials: true,
         headers: {
           'Content-Type': 'multipart/form-data',

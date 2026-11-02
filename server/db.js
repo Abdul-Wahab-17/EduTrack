@@ -1,21 +1,14 @@
-const mysql = require('mysql');
+const mysql = require('mysql2');
 
-const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'letmein',
-    database: 'test_lms'
+// Connection settings come from the environment (see ../.env.example); the defaults suit local development.
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'edutrack',
+  waitForConnections: true,
+  connectionLimit: 10,
 });
 
-// Connect to MySQLz
-connection.connect((err) => {
-    if (err) {
-        console.error('❌ Database connection failed:', err.stack);
-        return;
-    }
-    console.log('✅ Connected to MySQL as ID', connection.threadId);
-});
-
-
-
-module.exports = connection;
+module.exports = pool;

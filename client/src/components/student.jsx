@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/navbar";
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { API_URL } from '../api';
 
 export default function StudentDashboard() {
 
@@ -28,7 +29,7 @@ const {user} = useAuth();
         
         setStudent(user);
       axios
-        .get('http://localhost:8080/courses/enrolledCourses', { withCredentials: true })
+        .get(`${API_URL}/courses/enrolledCourses`, { withCredentials: true })
         .then((enrollmentsResponse) => {
            
             setEnrolledCourses(enrollmentsResponse.data);
@@ -69,7 +70,7 @@ const {user} = useAuth();
 
   const handleSaveProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/users/update-profile', {
+      const response = await fetch(`${API_URL}/api/users/update-profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
