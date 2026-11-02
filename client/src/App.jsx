@@ -3,7 +3,7 @@ import Logout from './pages/logout';
 import Login from './pages/login';
 import Home from './pages/home';
 import Dashboard from './pages/dashboard';
-import About from './pages/About';
+import About from './pages/about';
 import Navbar from './components/navbar';
 import Footer from './components/footer';
 import CourseList from './pages/CourseList';
@@ -12,13 +12,13 @@ import CourseDetail from './pages/CourseDetail';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ViewContent from './pages/viewContent';
 import UploadFile from './pages/UploadFile';
-import EditCourseForm from './pages/editCourse';
-import QuizManagement from './pages/QuizManagement';
-import UploadQuiz from './pages/UploadQuiz';
-import SolveQuizView from './pages/SolveQuizView';
-import ViewAllQuizzes from './pages/ViewAllQuizzes';
-import AssignmentManagement from './pages/AssignmentManagement';
-import StudentAssignmentView from './pages/StudentAssignmentView';
+// import EditCourseForm from './pages/editCourse';
+// import QuizManagement from './pages/QuizManagement';
+// import UploadQuiz from './pages/UploadQuiz';
+// import SolveQuizView from './pages/SolveQuizView';
+// import ViewAllQuizzes from './pages/ViewAllQuizzes';
+// import AssignmentManagement from './pages/AssignmentManagement';
+// import StudentAssignmentView from './pages/StudentAssignmentView';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -37,13 +37,13 @@ function AppRoutes() {
         <Route path="/courses/:courseId/content/create" element={<UploadFile />} />
         <Route path="/courses/:id" element={<CourseDetail />} />
         <Route path="courses/:courseId/content/:contentId" element={<ViewContent />}/>
-        <Route path="/course/:courseId/quiz" element={<QuizManagement />}/>
+        {/* <Route path="/course/:courseId/quiz" element={<QuizManagement />}/>
         <Route path="/courses/:courseId/edit" element={<EditCourseForm />}/>
         <Route path="/course/:courseId/quiz/upload" element={<UploadQuiz />} />
         <Route path="/courses/:courseId/quiz/:quizId" element={<SolveQuizView />}/>
-        <Route path="/course/:courseId/quizzes" element={<ViewAllQuizzes />} />
-        <Route path="/course/:courseId/assignments" element={<AssignmentManagement />} />
-        <Route path="/course/:courseId/assignment" element={<StudentAssignmentView />} />
+        <Route path="/course/:courseId/quizzes" element={<ViewAllQuizzes />} /> */}
+        {/* <Route path="/course/:courseId/assignments" element={<AssignmentManagement />} />
+        <Route path="/course/:courseId/assignment" element={<StudentAssignmentView />} /> */}
 
 
       </Routes>
