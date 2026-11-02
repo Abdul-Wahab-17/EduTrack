@@ -21,6 +21,26 @@ const { ensureAuthenticated, ensureInstructor , ensureStudent } = require('../mi
       })
     })
   })
+  // Update the signed-in user's profile (name, bio, picture URL)
+  router.put('/profile', ensureAuthenticated, (req, res) => {
+    const { displayName, bio, profilePic } = req.body;
+    const name = typeof displayName === 'string' ? displayName.trim().slice(0, 100) : null;
+    if (name !== null && name.length === 0) return res.status(400).json({ message: 'Name cannot be empty' });
+    if (profilePic && !/^https?:\/\//i.test(profilePic)) return res.status(400).json({ message: 'Picture must be an http(s) URL' });
+
+    db.query(
+      `UPDATE users SET display_name = COALESCE(?, display_name), bio = COALESCE(?, bio),
+                        profile_picture_url = ? WHERE user_id = ?`,
+      [name, typeof bio === 'string' ? bio.slice(0, 2000) : null, profilePic || null, req.user.id],
+      (err) => {
+        if (err) return res.status(500).json({ message: 'Could not update profile' });
+        if (name === null) return res.json({ message: 'Profile updated' });
+        const table = req.user.role === 'instructor' ? 'instructors' : 'students';
+        db.query(`UPDATE ${table} SET full_name = ? WHERE user_id = ?`, [name, req.user.id], () => res.json({ message: 'Profile updated' }));
+      }
+    );
+  });
+
   // Update a course (instructor only)
   router.put('/course/:id', ensureAuthenticated, ensureInstructor, (req, res) => {
     const courseId = req.params.id;

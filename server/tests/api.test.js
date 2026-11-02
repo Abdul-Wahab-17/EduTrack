@@ -72,9 +72,26 @@ test('enrolling twice fails; rating and feedback are validated and stored', asyn
   expect(fb.body.feedback[0]).toMatchObject({ feedback: 'Great', rating: 4, student_name: names.student });
 });
 
+test('users can edit their profile; bad input is rejected', async () => {
+  expect((await student.put('/data/profile').send({ displayName: '  ', bio: 'x' })).status).toBe(400);
+  expect((await student.put('/data/profile').send({ displayName: 'Ana', profilePic: 'javascript:alert(1)' })).status).toBe(400);
+  expect((await student.put('/data/profile').send({ displayName: 'Ana K', bio: 'Learning', profilePic: 'https://example.com/a.png' })).status).toBe(200);
+  const me = await student.get('/data');
+  expect(me.body).toMatchObject({ displayName: 'Ana K', bio: 'Learning', profilePic: 'https://example.com/a.png' });
+  expect((await request(app).put('/data/profile').send({ displayName: 'x' })).status).toBe(401);
+});
+
 test('the enrolled-courses list carries the instructor name', async () => {
   const mine = await student.get('/courses/enrolledCourses');
   expect(mine.body[0]).toMatchObject({ id: courseId, instructor_name: names.teacher });
+});
+
+test('a student can preview a published course before enrolling, but not read its content', async () => {
+  const prev = await outsider.get(`/courses/preview/${courseId}`);
+  expect(prev.status).toBe(200);
+  expect(prev.body).toMatchObject({ title: 'Test course', instructor_name: names.teacher });
+  expect((await outsider.get(`/courses/preview/999999`)).status).toBe(404);
+  expect((await teacher.get(`/courses/preview/${courseId}`)).status).toBe(403); // students only
 });
 
 test('available courses list includes description and instructor', async () => {

@@ -11,59 +11,35 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const authRes = await axios.get(`${API_URL}/auth/check`, {
-          withCredentials: true,
-        });
-
-        if (authRes.data.authenticated) {
-          const dataRes = await axios.get(`${API_URL}/data`, {
-            withCredentials: true,
-          });
-
-          setUser({
-            username: authRes.data.user.username,
-            role: authRes.data.user.role,
-            email: dataRes.data.email,
-            profilePic: dataRes.data.profilePic,
-          });
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, []);
-
-  const login = async (formData) => {
-    await axios.post(`${API_URL}/auth/login`, formData, {
-      withCredentials: true,
-    });
-
-    const authRes = await axios.get(`${API_URL}/auth/check`, {
-      withCredentials: true,
-    });
-    const dataRes = await axios.get(`${API_URL}/data`, {
-      withCredentials: true,
-    });
-
-   
-    setUser({
+  // The signed-in user's full profile, or null when nobody is signed in
+  const loadProfile = async () => {
+    const authRes = await axios.get(`${API_URL}/auth/check`, { withCredentials: true });
+    if (!authRes.data.authenticated) return null;
+    const dataRes = await axios.get(`${API_URL}/data`, { withCredentials: true });
+    return {
       username: authRes.data.user.username,
       role: authRes.data.user.role,
       email: dataRes.data.email,
       profilePic: dataRes.data.profilePic,
-      joinDate: dataRes.data.joinDate
-    });
+      joinDate: dataRes.data.joinDate,
+      bio: dataRes.data.bio,
+      displayName: dataRes.data.displayName,
+    };
+  };
 
+  useEffect(() => {
+    loadProfile().then(setUser).catch(() => setUser(null)).finally(() => setLoading(false));
+  }, []);
+
+  const login = async (formData) => {
+    await axios.post(`${API_URL}/auth/login`, formData, { withCredentials: true });
+    setUser(await loadProfile());
     navigate('/dashboard');
+  };
+
+  const updateProfile = async (fields) => {
+    await axios.put(`${API_URL}/data/profile`, fields, { withCredentials: true });
+    setUser(await loadProfile());
   };
 
   const logout = async () => {
@@ -80,6 +56,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
+        updateProfile,
       }}
     >
       {children}

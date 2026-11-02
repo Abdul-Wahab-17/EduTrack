@@ -13,7 +13,7 @@ export default function Home() {
             Learn from the best
           </h2>
           <p className="mt-4 max-w-2xl text-xl text-gray-600 mx-auto">
-            Join millions of learners from around the world already learning on EduLearn.
+            Browse courses, track your progress and share feedback with your instructors.
           </p>
         </div>
         

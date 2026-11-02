@@ -84,6 +84,24 @@ router.get('/instructor/feedback', ensureAuthenticated, ensureInstructor, (req, 
   });
 });
 
+// What a student may see of a course before enrolling: public details of published courses only
+router.get('/preview/:courseId', ensureAuthenticated, ensureStudent, (req, res) => {
+  db.query(
+    `SELECT c.course_id AS id, c.title, c.description, c.price, c.duration_weeks, c.status, c.created_at,
+            i.instructor_id, u.username AS instructor_name, u.bio AS instructor_bio
+     FROM courses c
+     JOIN instructors i ON c.instructor_id = i.instructor_id
+     JOIN users u ON i.user_id = u.user_id
+     WHERE c.course_id = ? AND c.status = 'published'`,
+    [req.params.courseId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      if (result.length === 0) return res.status(404).json({ error: 'Course not found' });
+      res.json(result[0]);
+    }
+  );
+});
+
 router.get('/:courseId/user-rating', ensureStudent, (req, res) => {
   const { courseId } = req.params;
   const userId = req.user.id;

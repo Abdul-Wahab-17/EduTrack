@@ -124,11 +124,11 @@ function CourseList() {
                       <div key={course.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
                         <div className="h-48 bg-gray-200 relative">
                           <img
-                            src={course.image_url || 'https://via.placeholder.com/400x225'}
+                            src={course.image_url || '/placeholder-course.svg'}
                             alt={course.title}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.target.src = 'https://via.placeholder.com/400x225';
+                              e.target.src = '/placeholder-course.svg';
                             }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
@@ -211,11 +211,11 @@ function CourseList() {
                       <div key={course.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300">
                         <div className="h-48 bg-gray-200 relative">
                           <img
-                            src={course.image_url || 'https://via.placeholder.com/400x225'}
+                            src={course.image_url || '/placeholder-course.svg'}
                             alt={course.title}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.target.src = 'https://via.placeholder.com/400x225';
+                              e.target.src = '/placeholder-course.svg';
                             }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
@@ -286,11 +286,11 @@ function CourseList() {
                 <div key={course.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   <div className="h-48 bg-gray-200 relative">
                     <img
-                      src={course.image_url || 'https://via.placeholder.com/400x225'}
+                      src={course.image_url || '/placeholder-course.svg'}
                       alt={course.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/400x225';
+                        e.target.src = '/placeholder-course.svg';
                       }}
                     />
                     <div className="absolute top-2 right-2">
